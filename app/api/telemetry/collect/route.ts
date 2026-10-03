@@ -29,50 +29,31 @@ export async function POST(request: Request) {
 
   const { token, metrics } = parsed.data;
 
-  const { data: session, error: sessionError } = await supabaseAdmin
-    .from("telemetry_sessions")
-    .select("id, expires_at, is_used")
-    .eq("id", token)
-    .maybeSingle();
-
-  if (sessionError) {
-    console.error("Failed to validate telemetry session", sessionError);
-    return Response.json({ error: "Não foi possível validar a coleta." }, { status: 500 });
-  }
-
-  if (!session || session.is_used || new Date(session.expires_at).getTime() <= Date.now()) {
-    return Response.json({ error: "Link de coleta inválido, expirado ou já utilizado." }, { status: 410 });
-  }
-
-  const { error: metricsError } = await supabaseAdmin.from("telemetry_metrics").insert({
-    session_id: token,
-    user_agent: metrics.userAgent,
-    os: metrics.os,
-    device_model: metrics.deviceModel,
-    ram_gb: metrics.ramGb,
-    cpu_cores: metrics.cpuCores,
-    screen_res: metrics.screenRes,
-    net_effective_type: metrics.netEffectiveType,
-    net_rtt: metrics.netRtt,
-    net_save_data: metrics.netSaveData,
-    ping_median: metrics.pingMedian,
-    download_speed: metrics.downloadSpeed,
+  const { error } = await supabaseAdmin.rpc("submit_telemetry", {
+    p_session_id: token,
+    p_user_agent: metrics.userAgent ?? null,
+    p_os: metrics.os ?? null,
+    p_device_model: metrics.deviceModel ?? null,
+    p_ram_gb: metrics.ramGb ?? null,
+    p_cpu_cores: metrics.cpuCores ?? null,
+    p_screen_res: metrics.screenRes ?? null,
+    p_net_effective_type: metrics.netEffectiveType ?? null,
+    p_net_rtt: metrics.netRtt ?? null,
+    p_net_save_data: metrics.netSaveData ?? null,
+    p_ping_median: metrics.pingMedian ?? null,
+    p_download_speed: metrics.downloadSpeed ?? null,
   });
 
-  if (metricsError) {
-    console.error("Failed to save telemetry metrics", metricsError);
+  if (error) {
+    if (error.message.includes("invalid_or_expired_session")) {
+      return Response.json(
+        { error: "Link de coleta inválido, expirado ou já utilizado." },
+        { status: 410 },
+      );
+    }
+
+    console.error("Failed to submit telemetry", error);
     return Response.json({ error: "Não foi possível salvar os dados." }, { status: 500 });
-  }
-
-  const { error: consumeError } = await supabaseAdmin
-    .from("telemetry_sessions")
-    .update({ is_used: true })
-    .eq("id", token)
-    .eq("is_used", false);
-
-  if (consumeError) {
-    console.error("Failed to consume telemetry session", consumeError);
-    return Response.json({ error: "Os dados foram salvos, mas a sessão não pôde ser encerrada." }, { status: 500 });
   }
 
   return Response.json({ ok: true });
