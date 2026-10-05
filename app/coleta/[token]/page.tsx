@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Status = "coletando" | "enviando" | "sucesso" | "erro";
 
@@ -65,8 +65,12 @@ async function collectMetrics() {
 export default function CollectionPage({ params }: { params: Promise<{ token: string }> }) {
   const [status, setStatus] = useState<Status>("coletando");
   const [error, setError] = useState<string | null>(null);
+  const startedRef = useRef(false);
 
   useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    
     void (async () => {
       try {
         const { token } = await params;

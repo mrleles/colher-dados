@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import styles from "./dashboard.module.css";
+import Link from "next/link";
 
 type SessionRow = {
   id: string;
@@ -110,7 +111,7 @@ export default async function DashboardPage() {
         <section className={styles.empty}>
           <h2>Nenhuma coleta encontrada</h2>
           <p>Gere uma coleta na tela inicial para começar.</p>
-          <a href="/">Gerar coleta</a>
+          <Link href="/">Gerar coleta</Link>
         </section>
       ) : (
         <section className={styles.tableCard}>
@@ -122,7 +123,7 @@ export default async function DashboardPage() {
           </div>
 
           <div className={styles.tableWrap}>
-            <table>
+            <table className={styles.table}>
               <thead>
                 <tr>
                   <th>Protocolo</th>
@@ -166,7 +167,7 @@ export default async function DashboardPage() {
       )}
 
       <footer className={styles.footer}>
-        <a href="/">← Voltar para gerar uma coleta</a>
+        <Link href="/">← Voltar para gerar uma coleta</Link>
       </footer>
     </main>
   );
