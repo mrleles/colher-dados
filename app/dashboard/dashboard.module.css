@@ -1,3 +1,4 @@
+/* existing styles */
 .page {
   min-height: 100vh;
   padding: 40px;
@@ -53,6 +54,138 @@
 .refresh:hover,
 .empty a:hover {
   background: #1c2631;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logout {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid #273341;
+  border-radius: 8px;
+  background: transparent;
+  color: #e8edf3;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.logout:hover {
+  background: #1c2631;
+}
+
+.generator {
+  max-width: 1440px;
+  margin: 0 auto 20px;
+  padding: 24px;
+  border: 1px solid #2b3948;
+  border-radius: 12px;
+  background: #111a23;
+}
+
+.generatorHeader h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.generatorHeader p {
+  margin: 8px 0 0;
+  color: #8ea2b8;
+  font-size: 13px;
+}
+
+.generatorForm {
+  margin-top: 20px;
+}
+
+.generateButton {
+  min-height: 44px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 8px;
+  background: #e8edf3;
+  color: #0b0f14;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.generateButton:hover {
+  background: #ffffff;
+}
+
+.generateButton:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.generated {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid #273341;
+  border-radius: 8px;
+  background: #0d141c;
+}
+
+.generatedMeta {
+  display: flex;
+  gap: 32px;
+  margin-bottom: 14px;
+}
+
+.generatedMeta span {
+  display: block;
+  margin-bottom: 5px;
+  color: #8ea2b8;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.generatedMeta strong {
+  font-size: 14px;
+}
+
+.linkRow {
+  display: flex;
+  gap: 8px;
+}
+
+.linkRow input {
+  min-width: 0;
+  flex: 1;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #273341;
+  border-radius: 8px;
+  background: #11171e;
+  color: #e8edf3;
+  font: inherit;
+}
+
+.linkRow button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid #273341;
+  border-radius: 8px;
+  background: #151c24;
+  color: #e8edf3;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.linkRow button:hover {
+  background: #1c2631;
+}
+
+.error {
+  margin: 14px 0 0;
+  color: #ef9299;
+  font-size: 13px;
 }
 
 .summary {
@@ -189,21 +322,6 @@ tbody tr:hover {
   color: #8ea2b8;
 }
 
-.footer {
-  max-width: 1440px;
-  margin: 20px auto 0;
-}
-
-.footer a {
-  color: #8ea2b8;
-  text-decoration: none;
-  font-size: 13px;
-}
-
-.footer a:hover {
-  color: #e8edf3;
-}
-
 @media (max-width: 800px) {
   .page {
     padding: 24px 16px;
@@ -217,27 +335,13 @@ tbody tr:hover {
   .summary {
     grid-template-columns: 1fr;
   }
-}
 
+  .generatedMeta {
+    flex-direction: column;
+    gap: 12px;
+  }
 
-.headerActions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.logout {
-  min-height: 40px;
-  padding: 0 16px;
-  border: 1px solid #273341;
-  border-radius: 8px;
-  background: transparent;
-  color: #e8edf3;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.logout:hover {
-  background: #1c2631;
+  .linkRow {
+    flex-direction: column;
+  }
 }
