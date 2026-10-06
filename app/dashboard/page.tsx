@@ -19,9 +19,12 @@ type SessionRow = {
 type MetricRow = {
   session_id: string;
   os: string | null;
+  device_brand: string | null;
+  device_model: string | null;
   ram_gb: number | null;
-  cpu_cores: number | null;
-  screen_res: string | null;
+  wifi_ssid: string | null;
+  wifi_frequency_mhz: number | null;
+  wifi_signal_strength_dbm: number | null;
   ping_median: number | null;
   download_speed: number | null;
   collected_at: string;
@@ -70,19 +73,21 @@ export default async function DashboardPage() {
   const { data: metrics, error: metricsError } = sessionIds.length
     ? await supabaseAdmin
         .from("telemetry_metrics")
-        .select("session_id, os, ram_gb, cpu_cores, screen_res, ping_median, download_speed, collected_at")
+        .select(
+          "session_id, os, device_brand, device_model, ram_gb, wifi_ssid, wifi_frequency_mhz, wifi_signal_strength_dbm, ping_median, download_speed, collected_at",
+        )
         .in("session_id", sessionIds)
     : { data: [], error: null };
 
   if (metricsError) throw new Error("Não foi possível carregar as métricas.");
 
   const metricBySession = new Map(
-    ((metrics ?? []) as MetricRow[]).map((metric) => [metric.session_id, metric])
+    ((metrics ?? []) as MetricRow[]).map((metric) => [metric.session_id, metric]),
   );
 
   const collectedCount = sessionRows.filter((session) => metricBySession.has(session.id)).length;
   const waitingCount = sessionRows.filter(
-    (session) => !metricBySession.has(session.id) && new Date(session.expires_at) > new Date()
+    (session) => !metricBySession.has(session.id) && new Date(session.expires_at) > new Date(),
   ).length;
 
   return (
@@ -121,7 +126,12 @@ export default async function DashboardPage() {
           </div>
           <div className={styles.tableWrap}>
             <table className={styles.table}>
-              <thead><tr><th>Protocolo</th><th>Status</th><th>Link</th><th>SO</th><th>RAM</th><th>CPU</th><th>Resolução</th><th>Ping</th><th>Download</th><th>Coleta</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Protocolo</th><th>Status</th><th>Link</th><th>Marca</th><th>Modelo</th><th>SO</th>
+                  <th>RAM</th><th>Wi-Fi</th><th>Frequência</th><th>Sinal</th><th>Ping</th><th>Download</th><th>Coleta</th>
+                </tr>
+              </thead>
               <tbody>
                 {sessionRows.map((session) => {
                   const metric = metricBySession.get(session.id);
@@ -131,10 +141,13 @@ export default async function DashboardPage() {
                       <td className={styles.protocol}>{session.protocol_id}</td>
                       <td><span className={`${styles.status} ${status.className}`}>{status.label}</span></td>
                       <td>{!metric && new Date(session.expires_at) > new Date() ? <CopySessionLink sessionId={session.id} /> : "—"}</td>
+                      <td>{metric?.device_brand ?? "Não informado"}</td>
+                      <td>{metric?.device_model ?? "Não informado"}</td>
                       <td>{metric?.os ?? "Não informado"}</td>
                       <td>{formatNumber(metric?.ram_gb ?? null, " GB")}</td>
-                      <td>{metric?.cpu_cores ?? "Não informado"}</td>
-                      <td>{metric?.screen_res ?? "Não informado"}</td>
+                      <td>{metric?.wifi_ssid ?? "Não disponível via navegador"}</td>
+                      <td>{metric?.wifi_frequency_mhz != null ? `${metric.wifi_frequency_mhz} MHz` : "Não disponível via navegador"}</td>
+                      <td>{metric?.wifi_signal_strength_dbm != null ? `${metric.wifi_signal_strength_dbm} dBm` : "Não disponível via navegador"}</td>
                       <td>{formatNumber(metric?.ping_median ?? null, " ms")}</td>
                       <td>{formatNumber(metric?.download_speed ?? null, " Mbps")}</td>
                       <td>{formatDate(metric?.collected_at ?? null)}</td>
