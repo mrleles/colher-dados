@@ -16,6 +16,8 @@ create table if not exists public.telemetry_metrics (
   os varchar(100),
   device_brand varchar(100),
   device_model varchar(255),
+  device_model_name varchar(255),
+  device_model_confidence varchar(20),
   ram_gb double precision,
   wifi_ssid text,
   wifi_frequency_mhz integer,
@@ -42,6 +44,8 @@ create or replace function public.submit_telemetry(
   p_os varchar,
   p_device_brand varchar,
   p_device_model varchar,
+  p_device_model_name varchar,
+  p_device_model_confidence varchar,
   p_ram_gb double precision,
   p_wifi_ssid text,
   p_wifi_frequency_mhz integer,
@@ -71,12 +75,12 @@ begin
   end if;
 
   insert into public.telemetry_metrics (
-    session_id, user_agent, os, device_brand, device_model, ram_gb,
+    session_id, user_agent, os, device_brand, device_model, device_model_name, device_model_confidence, ram_gb,
     wifi_ssid, wifi_frequency_mhz, wifi_signal_strength_dbm,
     net_effective_type, net_rtt, net_save_data,
     ping_median, download_speed
   ) values (
-    p_session_id, p_user_agent, p_os, p_device_brand, p_device_model, p_ram_gb,
+    p_session_id, p_user_agent, p_os, p_device_brand, p_device_model, p_device_model_name, p_device_model_confidence, p_ram_gb,
     p_wifi_ssid, p_wifi_frequency_mhz, p_wifi_signal_strength_dbm,
     p_net_effective_type, p_net_rtt, p_net_save_data,
     p_ping_median, p_download_speed
@@ -87,6 +91,6 @@ end;
 $$;
 
 revoke all on function public.submit_telemetry(
-  uuid,text,varchar,varchar,varchar,double precision,text,integer,integer,
+  uuid,text,varchar,varchar,varchar,varchar,varchar,double precision,text,integer,integer,
   varchar,integer,boolean,double precision,double precision
 ) from public;
