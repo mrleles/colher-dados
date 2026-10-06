@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { collectDeviceInfo } from "@/lib/telemetry/device";
 
 type Status = "coletando" | "enviando" | "sucesso" | "erro";
 
@@ -35,25 +36,28 @@ async function measureLatency(url: string) {
 async function collectMetrics() {
   const nav = navigator as NavigatorWithConnection;
   const connection = nav.connection;
-  const latencyUrl = "/api/telemetry/ping";
-  const downloadUrl = "/api/telemetry/download";
+  const userAgent = navigator.userAgent;
+  const device = await collectDeviceInfo(userAgent);
 
-  const pingMedian = await measureLatency(latencyUrl);
+  const pingMedian = await measureLatency("/api/telemetry/ping");
 
   const start = performance.now();
-  const response = await fetch(downloadUrl, { cache: "no-store" });
+  const response = await fetch("/api/telemetry/download", { cache: "no-store" });
   if (!response.ok) throw new Error("Falha no teste de download.");
   const bytes = (await response.arrayBuffer()).byteLength;
   const elapsedSeconds = (performance.now() - start) / 1000;
   const downloadSpeed = elapsedSeconds > 0 ? (bytes * 8) / elapsedSeconds / 1_000_000 : null;
 
   return {
-    userAgent: navigator.userAgent,
-    os: navigator.platform || null,
-    deviceModel: null,
+    userAgent,
+    os: device.os,
+    deviceBrand: device.brand,
+    deviceModel: device.model,
     ramGb: nav.deviceMemory ?? null,
-    cpuCores: navigator.hardwareConcurrency ?? null,
-    screenRes: `${screen.width}x${screen.height}`,
+    // No standard browser API exposes SSID, Wi-Fi frequency or RSSI.
+    wifiSsid: null,
+    wifiFrequencyMhz: null,
+    wifiSignalStrengthDbm: null,
     netEffectiveType: connection?.effectiveType ?? null,
     netRtt: connection?.rtt ?? null,
     netSaveData: connection?.saveData ?? null,
@@ -70,7 +74,7 @@ export default function CollectionPage({ params }: { params: Promise<{ token: st
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
-    
+
     void (async () => {
       try {
         const { token } = await params;
