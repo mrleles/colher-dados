@@ -58,7 +58,7 @@ export function resolveDeviceModel(
   }
 
   if (normalizedOs === "ios") {
-    const modelName = normalize(ios[normalizedModel]);
+    const modelName = normalize((ios as Record<string, string>)[normalizedModel]);
     return {
       brand: modelName ? "Apple" : currentBrand ?? "Apple",
       modelName,
@@ -67,7 +67,7 @@ export function resolveDeviceModel(
   }
 
   if (normalizedOs === "android") {
-    const modelName = normalize(aos[normalizedModel]);
+    const modelName = normalize((aos as Record<string, string>)[normalizedModel]);
     if (!modelName) {
       return { brand: currentBrand, modelName: null, confidence: "unknown" };
     }
