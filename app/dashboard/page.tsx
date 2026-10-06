@@ -1,4 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+import { logout } from "@/app/login/actions";
+import { redirect } from "next/navigation";
 import styles from "./dashboard.module.css";
 import Link from "next/link";
 
@@ -45,6 +48,13 @@ function statusFor(session: SessionRow, metric?: MetricRow) {
 }
 
 export default async function DashboardPage() {
+  const supabase = await createClient();
+  const { data: claimsData } = await supabase.auth.getClaims();
+
+  if (!claimsData?.claims?.sub) {
+    redirect("/login");
+  }
+
   const { data: sessions, error: sessionsError } = await supabaseAdmin
     .from("telemetry_sessions")
     .select("id, protocol_id, created_at, expires_at, is_used")
@@ -82,7 +92,12 @@ export default async function DashboardPage() {
           <h1>Dashboard de telemetria</h1>
           <p>Acompanhe as coletas realizadas pelos clientes.</p>
         </div>
-        <a className={styles.refresh} href="/dashboard">Atualizar</a>
+        <div className={styles.headerActions}>
+          <a className={styles.refresh} href="/dashboard">Atualizar</a>
+          <form action={logout}>
+            <button className={styles.logout} type="submit">Sair</button>
+          </form>
+        </div>
       </header>
 
       <section className={styles.summary} aria-label="Resumo das coletas">
