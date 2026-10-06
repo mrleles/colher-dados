@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { createTelemetryToken } from "@/lib/telemetry/token";
 
 const bodySchema = z.object({
@@ -7,6 +8,13 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const supabase = await createClient();
+  const { data: claimsData } = await supabase.auth.getClaims();
+
+  if (!claimsData?.claims?.sub) {
+    return Response.json({ error: "Não autenticado." }, { status: 401 });
+  }
+
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
 
   if (!parsed.success) {
