@@ -4,6 +4,7 @@ import { logout } from "@/app/login/actions";
 import { redirect } from "next/navigation";
 import styles from "./dashboard.module.css";
 import CreateSessionForm from "./create-session-form";
+import CopySessionLink from "./copy-session-link";
 
 export const dynamic = "force-dynamic";
 
@@ -120,7 +121,7 @@ export default async function DashboardPage() {
           </div>
           <div className={styles.tableWrap}>
             <table className={styles.table}>
-              <thead><tr><th>Protocolo</th><th>Status</th><th>SO</th><th>RAM</th><th>CPU</th><th>Resolução</th><th>Ping</th><th>Download</th><th>Coleta</th></tr></thead>
+              <thead><tr><th>Protocolo</th><th>Status</th><th>Link</th><th>SO</th><th>RAM</th><th>CPU</th><th>Resolução</th><th>Ping</th><th>Download</th><th>Coleta</th></tr></thead>
               <tbody>
                 {sessionRows.map((session) => {
                   const metric = metricBySession.get(session.id);
@@ -129,6 +130,7 @@ export default async function DashboardPage() {
                     <tr key={session.id}>
                       <td className={styles.protocol}>{session.protocol_id}</td>
                       <td><span className={`${styles.status} ${status.className}`}>{status.label}</span></td>
+                      <td>{!metric && new Date(session.expires_at) > new Date() ? <CopySessionLink sessionId={session.id} /> : "—"}</td>
                       <td>{metric?.os ?? "Não informado"}</td>
                       <td>{formatNumber(metric?.ram_gb ?? null, " GB")}</td>
                       <td>{metric?.cpu_cores ?? "Não informado"}</td>
