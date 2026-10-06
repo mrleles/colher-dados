@@ -345,3 +345,21 @@ tbody tr:hover {
     flex-direction: column;
   }
 }
+
+
+.copyPending {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid #273341;
+  border-radius: 7px;
+  background: #151c24;
+  color: #e8edf3;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.copyPending:hover {
+  background: #1c2631;
+}
