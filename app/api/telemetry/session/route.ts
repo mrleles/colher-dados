@@ -1,11 +1,27 @@
-import { z } from "zod";
+import { randomUUID } from "node:crypto";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { createTelemetryToken } from "@/lib/telemetry/token";
 
-const bodySchema = z.object({
-  protocolId: z.string().trim().min(1).max(100),
-});
+function createProtocolId() {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const timestamp = `${values.year}${values.month}${values.day}-${values.hour}${values.minute}${values.second}`;
+  const suffix = randomUUID().replaceAll("-", "").slice(0, 4).toUpperCase();
+
+  return `${timestamp}-${suffix}`;
+}
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -15,17 +31,12 @@ export async function POST(request: Request) {
     return Response.json({ error: "Não autenticado." }, { status: 401 });
   }
 
-  const parsed = bodySchema.safeParse(await request.json().catch(() => null));
-
-  if (!parsed.success) {
-    return Response.json({ error: "protocolId inválido." }, { status: 400 });
-  }
-
   const { id, expiresAt } = createTelemetryToken();
+  const protocolId = createProtocolId();
 
   const { error } = await supabaseAdmin.from("telemetry_sessions").insert({
     id,
-    protocol_id: parsed.data.protocolId,
+    protocol_id: protocolId,
     expires_at: expiresAt.toISOString(),
     is_used: false,
   });
@@ -38,6 +49,7 @@ export async function POST(request: Request) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin;
   return Response.json({
     token: id,
+    protocolId,
     url: new URL(`/coleta/${id}`, baseUrl).toString(),
     expiresAt: expiresAt.toISOString(),
   });
