@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/login/actions";
 import { redirect } from "next/navigation";
 import styles from "./dashboard.module.css";
-import Link from "next/link";
+import CreateSessionForm from "./create-session-form";
 
 export const dynamic = "force-dynamic";
 
@@ -90,7 +90,7 @@ export default async function DashboardPage() {
         <div>
           <span className={styles.eyebrow}>ATENDIMENTO</span>
           <h1>Dashboard de telemetria</h1>
-          <p>Acompanhe as coletas realizadas pelos clientes.</p>
+          <p>Gere links e acompanhe as coletas realizadas pelos clientes.</p>
         </div>
         <div className={styles.headerActions}>
           <a className={styles.refresh} href="/dashboard">Atualizar</a>
@@ -99,6 +99,8 @@ export default async function DashboardPage() {
           </form>
         </div>
       </header>
+
+      <CreateSessionForm />
 
       <section className={styles.summary} aria-label="Resumo das coletas">
         <article><span>Total de coletas</span><strong>{sessionRows.length}</strong></article>
@@ -109,8 +111,7 @@ export default async function DashboardPage() {
       {sessionRows.length === 0 ? (
         <section className={styles.empty}>
           <h2>Nenhuma coleta encontrada</h2>
-          <p>Gere uma coleta na tela inicial para começar.</p>
-          <Link href="/">Gerar coleta</Link>
+          <p>Use o botão acima para gerar o primeiro link de coleta.</p>
         </section>
       ) : (
         <section className={styles.tableCard}>
@@ -143,8 +144,6 @@ export default async function DashboardPage() {
           </div>
         </section>
       )}
-
-      <footer className={styles.footer}><Link href="/">← Voltar para gerar uma coleta</Link></footer>
     </main>
   );
 }
