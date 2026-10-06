@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { resolveDeviceModel } from "@/lib/telemetry/device-resolver";
 
 const metricsSchema = z.object({
   userAgent: z.string().max(2000).optional().nullable(),
@@ -30,13 +31,16 @@ export async function POST(request: Request) {
   }
 
   const { token, metrics } = parsed.data;
+  const resolvedDevice = resolveDeviceModel(metrics.deviceModel ?? null, metrics.os ?? null, metrics.deviceBrand ?? null);
 
   const { error } = await supabaseAdmin.rpc("submit_telemetry", {
     p_session_id: token,
     p_user_agent: metrics.userAgent ?? null,
     p_os: metrics.os ?? null,
-    p_device_brand: metrics.deviceBrand ?? null,
     p_device_model: metrics.deviceModel ?? null,
+    p_device_model_name: resolvedDevice.modelName,
+    p_device_model_confidence: resolvedDevice.confidence,
+    p_device_brand: resolvedDevice.brand,
     p_ram_gb: metrics.ramGb ?? null,
     p_wifi_ssid: metrics.wifiSsid ?? null,
     p_wifi_frequency_mhz: metrics.wifiFrequencyMhz ?? null,

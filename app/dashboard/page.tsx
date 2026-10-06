@@ -21,6 +21,8 @@ type MetricRow = {
   os: string | null;
   device_brand: string | null;
   device_model: string | null;
+  device_model_name: string | null;
+  device_model_confidence: string | null;
   ram_gb: number | null;
   wifi_ssid: string | null;
   wifi_frequency_mhz: number | null;
@@ -74,7 +76,7 @@ export default async function DashboardPage() {
     ? await supabaseAdmin
         .from("telemetry_metrics")
         .select(
-          "session_id, os, device_brand, device_model, ram_gb, wifi_ssid, wifi_frequency_mhz, wifi_signal_strength_dbm, ping_median, download_speed, collected_at",
+          "session_id, os, device_brand, device_model, device_model_name, device_model_confidence, ram_gb, wifi_ssid, wifi_frequency_mhz, wifi_signal_strength_dbm, ping_median, download_speed, collected_at",
         )
         .in("session_id", sessionIds)
     : { data: [], error: null };
@@ -128,7 +130,7 @@ export default async function DashboardPage() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Protocolo</th><th>Status</th><th>Link</th><th>Marca</th><th>Modelo</th><th>SO</th>
+                  <th>Protocolo</th><th>Status</th><th>Link</th><th>Marca</th><th>Modelo</th><th>Modelo comercial</th><th>SO</th>
                   <th>RAM</th><th>Wi-Fi</th><th>Frequência</th><th>Sinal</th><th>Ping</th><th>Download</th><th>Coleta</th>
                 </tr>
               </thead>
@@ -143,6 +145,7 @@ export default async function DashboardPage() {
                       <td>{!metric && new Date(session.expires_at) > new Date() ? <CopySessionLink sessionId={session.id} /> : "—"}</td>
                       <td>{metric?.device_brand ?? "Não informado"}</td>
                       <td>{metric?.device_model ?? "Não informado"}</td>
+                      <td>{metric?.device_model_name ?? "Não identificado"}</td>
                       <td>{metric?.os ?? "Não informado"}</td>
                       <td>{formatNumber(metric?.ram_gb ?? null, " GB")}</td>
                       <td>{metric?.wifi_ssid ?? "Não disponível via navegador"}</td>
