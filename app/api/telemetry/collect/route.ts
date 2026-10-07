@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { resolveDeviceModel } from "@/lib/telemetry/device-resolver";
+import { resolveClientNetwork } from "@/lib/telemetry/network";
 
 const metricsSchema = z.object({
   userAgent: z.string().max(2000).optional().nullable(),
@@ -8,9 +9,6 @@ const metricsSchema = z.object({
   deviceBrand: z.string().max(100).optional().nullable(),
   deviceModel: z.string().max(255).optional().nullable(),
   ramGb: z.number().finite().nonnegative().optional().nullable(),
-  wifiSsid: z.string().max(255).optional().nullable(),
-  wifiFrequencyMhz: z.number().int().positive().optional().nullable(),
-  wifiSignalStrengthDbm: z.number().int().negative().optional().nullable(),
   netEffectiveType: z.string().max(16).optional().nullable(),
   netRtt: z.number().int().nonnegative().optional().nullable(),
   netSaveData: z.boolean().optional().nullable(),
@@ -32,6 +30,7 @@ export async function POST(request: Request) {
 
   const { token, metrics } = parsed.data;
   const resolvedDevice = resolveDeviceModel(metrics.deviceModel ?? null, metrics.os ?? null, metrics.deviceBrand ?? null);
+  const network = await resolveClientNetwork(request);
 
   const { error } = await supabaseAdmin.rpc("submit_telemetry", {
     p_session_id: token,
@@ -42,9 +41,8 @@ export async function POST(request: Request) {
     p_device_model_confidence: resolvedDevice.confidence,
     p_device_brand: resolvedDevice.brand,
     p_ram_gb: metrics.ramGb ?? null,
-    p_wifi_ssid: metrics.wifiSsid ?? null,
-    p_wifi_frequency_mhz: metrics.wifiFrequencyMhz ?? null,
-    p_wifi_signal_strength_dbm: metrics.wifiSignalStrengthDbm ?? null,
+    p_client_ip: network.ip,
+    p_isp: network.isp,
     p_net_effective_type: metrics.netEffectiveType ?? null,
     p_net_rtt: metrics.netRtt ?? null,
     p_net_save_data: metrics.netSaveData ?? null,
