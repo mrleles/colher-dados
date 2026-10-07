@@ -24,9 +24,8 @@ type MetricRow = {
   device_model_name: string | null;
   device_model_confidence: string | null;
   ram_gb: number | null;
-  wifi_ssid: string | null;
-  wifi_frequency_mhz: number | null;
-  wifi_signal_strength_dbm: number | null;
+  client_ip: string | null;
+  isp: string | null;
   ping_median: number | null;
   download_speed: number | null;
   collected_at: string;
@@ -76,7 +75,7 @@ export default async function DashboardPage() {
     ? await supabaseAdmin
         .from("telemetry_metrics")
         .select(
-          "session_id, os, device_brand, device_model, device_model_name, device_model_confidence, ram_gb, wifi_ssid, wifi_frequency_mhz, wifi_signal_strength_dbm, ping_median, download_speed, collected_at",
+          "session_id, os, device_brand, device_model, device_model_name, device_model_confidence, ram_gb, client_ip, isp, ping_median, download_speed, collected_at",
         )
         .in("session_id", sessionIds)
     : { data: [], error: null };
@@ -131,7 +130,7 @@ export default async function DashboardPage() {
               <thead>
                 <tr>
                   <th>Protocolo</th><th>Status</th><th>Link</th><th>Marca</th><th>Modelo</th><th>Modelo comercial</th><th>SO</th>
-                  <th>RAM</th><th>Wi-Fi</th><th>Frequência</th><th>Sinal</th><th>Ping</th><th>Download</th><th>Coleta</th>
+                  <th>RAM</th><th>IP</th><th>ISP</th><th>Ping</th><th>Download</th><th>Coleta</th>
                 </tr>
               </thead>
               <tbody>
@@ -148,9 +147,8 @@ export default async function DashboardPage() {
                       <td>{metric?.device_model_name ?? "Não identificado"}</td>
                       <td>{metric?.os ?? "Não informado"}</td>
                       <td>{formatNumber(metric?.ram_gb ?? null, " GB")}</td>
-                      <td>{metric?.wifi_ssid ?? "Não disponível via navegador"}</td>
-                      <td>{metric?.wifi_frequency_mhz != null ? `${metric.wifi_frequency_mhz} MHz` : "Não disponível via navegador"}</td>
-                      <td>{metric?.wifi_signal_strength_dbm != null ? `${metric.wifi_signal_strength_dbm} dBm` : "Não disponível via navegador"}</td>
+                      <td>{metric?.client_ip ?? "Não informado"}</td>
+                      <td>{metric?.isp ?? "Não identificado"}</td>
                       <td>{formatNumber(metric?.ping_median ?? null, " ms")}</td>
                       <td>{formatNumber(metric?.download_speed ?? null, " Mbps")}</td>
                       <td>{formatDate(metric?.collected_at ?? null)}</td>
