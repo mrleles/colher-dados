@@ -30,6 +30,11 @@ export default function SpeedTestPage() {
       <p>O navegador testa somente São Mateus, Governador Valadares e Guarapari. Em Guarapari usamos especificamente o servidor SuperNet-ES.</p>
       <button type="button" onClick={runTest} disabled={running}>{running ? "Testando…" : "Iniciar teste"}</button>
       <p>{message}</p>
+      {results.length === 0 && !running && (
+        <p style={{ marginTop: 16 }}>
+          O teste mede a latência diretamente do seu navegador. Se algum servidor não responder, o motivo aparecerá na tabela.
+        </p>
+      )}
       {results.length > 0 && (
         <table style={{ width: "100%", marginTop: 24, borderCollapse: "collapse" }}>
           <thead><tr><th align="left">Servidor</th><th align="left">Cidade</th><th align="left">Latência</th><th align="left">Jitter</th><th align="left">Status</th></tr></thead>
