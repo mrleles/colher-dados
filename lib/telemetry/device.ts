@@ -14,6 +14,10 @@ type UserAgentDataLike = {
   }>;
 };
 
+type BatteryManagerLike = {
+  level?: number;
+};
+
 function normalize(value: string | undefined | null) {
   const normalized = value?.trim();
   return normalized ? normalized : null;
@@ -80,4 +84,23 @@ export async function collectDeviceInfo(userAgent: string): Promise<DeviceInfo> 
   }
 
   return { brand, model, os };
+}
+
+export async function collectBatteryLevel(): Promise<number | null> {
+  const batteryNavigator = navigator as Navigator & {
+    getBattery?: () => Promise<BatteryManagerLike>;
+  };
+
+  if (!batteryNavigator.getBattery) return null;
+
+  try {
+    const battery = await batteryNavigator.getBattery();
+    if (typeof battery.level !== "number" || !Number.isFinite(battery.level)) return null;
+
+    const percentage = Math.round(battery.level * 100);
+    return Math.min(100, Math.max(0, percentage));
+  } catch {
+    // Battery information is optional and may be unavailable in the browser.
+    return null;
+  }
 }

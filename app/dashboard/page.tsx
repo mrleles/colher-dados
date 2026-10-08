@@ -24,6 +24,8 @@ type MetricRow = {
   device_model_name: string | null;
   device_model_confidence: string | null;
   ram_gb: number | null;
+  battery_level: number | null;
+  dns_server: string | null;
   client_ip: string | null;
   isp: string | null;
   ping_median: number | null;
@@ -75,7 +77,7 @@ export default async function DashboardPage() {
     ? await supabaseAdmin
         .from("telemetry_metrics")
         .select(
-          "session_id, os, device_brand, device_model, device_model_name, device_model_confidence, ram_gb, client_ip, isp, ping_median, download_speed, collected_at",
+          "session_id, os, device_brand, device_model, device_model_name, device_model_confidence, ram_gb, battery_level, dns_server, client_ip, isp, ping_median, download_speed, collected_at",
         )
         .in("session_id", sessionIds)
     : { data: [], error: null };
@@ -130,7 +132,7 @@ export default async function DashboardPage() {
               <thead>
                 <tr>
                   <th>Protocolo</th><th>Status</th><th>Link</th><th>Marca</th><th>Modelo</th><th>Modelo comercial</th><th>SO</th>
-                  <th>RAM</th><th>IP</th><th>ISP</th><th>Ping</th><th>Download</th><th>Coleta</th>
+                  <th>RAM</th><th>Bateria</th><th>DNS</th><th>IP</th><th>ISP</th><th>Ping</th><th>Download</th><th>Coleta</th>
                 </tr>
               </thead>
               <tbody>
@@ -147,6 +149,8 @@ export default async function DashboardPage() {
                       <td>{metric?.device_model_name ?? "Não identificado"}</td>
                       <td>{metric?.os ?? "Não informado"}</td>
                       <td>{formatNumber(metric?.ram_gb ?? null, " GB")}</td>
+                      <td>{formatNumber(metric?.battery_level ?? null, "%")}</td>
+                      <td>{metric?.dns_server ?? "Não identificado"}</td>
                       <td>{metric?.client_ip ?? "Não informado"}</td>
                       <td>{metric?.isp ?? "Não identificado"}</td>
                       <td>{formatNumber(metric?.ping_median ?? null, " ms")}</td>
