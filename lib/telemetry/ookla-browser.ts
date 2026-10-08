@@ -1,5 +1,3 @@
-import type { } from "react";
-
 export type OoklaCandidate = { id: number; name: string; city: string; host: string };
 export type OoklaLatencyResult = OoklaCandidate & { latencyMs: number | null; jitterMs: number | null; error?: string };
 export type OoklaDownloadResult = { server: OoklaCandidate; latencyMs: number; jitterMs: number; downloadMbps: number | null };
