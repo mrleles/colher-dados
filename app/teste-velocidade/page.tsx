@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { findNearestOoklaServer, measureOoklaDownload, type OoklaLatencyResult } from "@/lib/telemetry/ookla-browser";
+import { findNearestOoklaServer, measureOoklaDownload, measureOoklaLatency, OOKLA_CANDIDATES, type OoklaLatencyResult } from "@/lib/telemetry/ookla-browser";
 
 export default function SpeedTestPage() {
   const [results, setResults] = useState<OoklaLatencyResult[]>([]);
@@ -13,15 +13,33 @@ export default function SpeedTestPage() {
   async function runTest() {
     setRunning(true); setResults([]); setSelected(null); setDownload(null);
     setMessage("Medindo latência dos 3 servidores…");
+
+    const measured = await Promise.all(OOKLA_CANDIDATES.map(measureOoklaLatency));
+    setResults(measured);
+
+    const available = measured
+      .filter((result) => result.latencyMs !== null)
+      .sort((a, b) => (a.latencyMs ?? Infinity) - (b.latencyMs ?? Infinity));
+
+    if (!available.length) {
+      setMessage("Nenhum dos 3 servidores respondeu. Os detalhes estão na tabela abaixo.");
+      setRunning(false);
+      return;
+    }
+
+    const nearest = await findNearestOoklaServer(measured.map(({ id, name, city, host }) => ({ id, name, city, host })));
+    setSelected(nearest.selected);
+    setMessage("Servidor escolhido: " + nearest.selected.name + " — " + nearest.selected.city + ". Medindo download…");
+
     try {
-      const nearest = await findNearestOoklaServer();
-      setResults(nearest.results); setSelected(nearest.selected);
-      setMessage("Servidor escolhido: " + nearest.selected.name + " — " + nearest.selected.city + ". Medindo download…");
       const downloadResult = await measureOoklaDownload(nearest.selected);
-      setDownload(downloadResult.downloadMbps); setMessage("Teste concluído.");
+      setDownload(downloadResult.downloadMbps);
+      setMessage("Teste concluído.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Falha no teste.");
-    } finally { setRunning(false); }
+      setMessage("Latência medida, mas o download falhou: " + (error instanceof Error ? error.message : "falha desconhecida."));
+    } finally {
+      setRunning(false);
+    }
   }
 
   return (
@@ -30,11 +48,6 @@ export default function SpeedTestPage() {
       <p>O navegador testa somente São Mateus, Governador Valadares e Guarapari. Em Guarapari usamos especificamente o servidor SuperNet-ES.</p>
       <button type="button" onClick={runTest} disabled={running}>{running ? "Testando…" : "Iniciar teste"}</button>
       <p>{message}</p>
-      {results.length === 0 && !running && (
-        <p style={{ marginTop: 16 }}>
-          O teste mede a latência diretamente do seu navegador. Se algum servidor não responder, o motivo aparecerá na tabela.
-        </p>
-      )}
       {results.length > 0 && (
         <table style={{ width: "100%", marginTop: 24, borderCollapse: "collapse" }}>
           <thead><tr><th align="left">Servidor</th><th align="left">Cidade</th><th align="left">Latência</th><th align="left">Jitter</th><th align="left">Status</th></tr></thead>
