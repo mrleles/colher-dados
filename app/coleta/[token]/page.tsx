@@ -122,6 +122,10 @@ async function collectMetrics() {
   const downloadResult = await measureOoklaDownload(nearest.selected);
   const pingMedian = downloadResult.latencyMs;
   const downloadSpeed = downloadResult.downloadMbps;
+  const ooklaServerId = nearest.selected.id;
+  const ooklaServerName = nearest.selected.name;
+  const ooklaServerCity = nearest.selected.city;
+  const ooklaServerHost = nearest.selected.host;
 
   return {
     userAgent,
@@ -140,6 +144,10 @@ async function collectMetrics() {
     netSaveData: connection?.saveData ?? null,
     pingMedian,
     downloadSpeed,
+    ooklaServerId,
+    ooklaServerName,
+    ooklaServerCity,
+    ooklaServerHost,
   };
 }
 
