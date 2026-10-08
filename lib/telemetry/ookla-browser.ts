@@ -1,6 +1,15 @@
 export type OoklaCandidate = { id: number; name: string; city: string; host: string };
-export type OoklaLatencyResult = OoklaCandidate & { latencyMs: number | null; jitterMs: number | null; error?: string };
-export type OoklaDownloadResult = { server: OoklaCandidate; latencyMs: number; jitterMs: number; downloadMbps: number | null };
+export type OoklaLatencyResult = OoklaCandidate & {
+  latencyMs: number | null;
+  jitterMs: number | null;
+  error?: string;
+};
+export type OoklaDownloadResult = {
+  server: OoklaCandidate;
+  latencyMs: number;
+  jitterMs: number;
+  downloadMbps: number | null;
+};
 
 export const OOKLA_CANDIDATES: OoklaCandidate[] = [
   { id: 9407, name: "SuperNet-ES", city: "São Mateus, ES", host: "test1.supernetes.com.br:8080" },
@@ -9,8 +18,9 @@ export const OOKLA_CANDIDATES: OoklaCandidate[] = [
 ];
 
 const PING_SAMPLES = 5;
-const PING_TIMEOUT_MS = 4000;
-const DOWNLOAD_SIZE_BYTES = 10 * 1024 * 1024;
+const PING_TIMEOUT_MS = 5000;
+const DOWNLOAD_SIZE_BYTES = 25 * 1024 * 1024;
+const DOWNLOAD_TIMEOUT_MS = 15000;
 
 function median(values: number[]) {
   const sorted = [...values].sort((a, b) => a - b);
@@ -25,60 +35,100 @@ function standardDeviation(values: number[], average: number) {
   return Math.sqrt(variance);
 }
 
+function websocketUrl(server: OoklaCandidate) {
+  return "wss://" + server.host + "/ws";
+}
+
+function socketFailure(server: OoklaCandidate, event: CloseEvent | Event) {
+  if (event instanceof CloseEvent && event.code !== 1000) {
+    return "WebSocket encerrado (código " + event.code + (event.reason ? ": " + event.reason : "") + ").";
+  }
+
+  return "Não foi possível abrir o WebSocket Ookla. O servidor pode não aceitar WSS na porta 8080 ou a conexão pode estar sendo bloqueada pela rede.";
+}
+
 function pingOoklaServer(server: OoklaCandidate): Promise<number[]> {
   return new Promise((resolve, reject) => {
     const samples: number[] = [];
     let settled = false;
     let timeoutId: number | undefined;
+    let sampleTimeoutId: number | undefined;
+    let socket: WebSocket | null = null;
+    let waitingForPong = false;
+    let pingStartedAt = 0;
+
+    const cleanup = () => {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+      if (sampleTimeoutId !== undefined) window.clearTimeout(sampleTimeoutId);
+      if (socket && socket.readyState === WebSocket.OPEN) socket.close(1000, "teste concluído");
+      socket = null;
+    };
 
     const finish = (error?: Error) => {
       if (settled) return;
       settled = true;
-      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
-      if (error) reject(error); else resolve(samples);
+      cleanup();
+      if (error) reject(error);
+      else resolve(samples);
     };
 
-    const runSample = async (index: number) => {
-      const controller = new AbortController();
-      const sampleTimeout = window.setTimeout(() => controller.abort(), PING_TIMEOUT_MS);
+    const startPing = () => {
+      if (!socket || socket.readyState !== WebSocket.OPEN || settled) return;
 
-      try {
-        const startedAt = performance.now();
-        const url = "https://" + server.host + "/speedtest/latency.txt?x=" + Date.now() + "-" + index + "-" + crypto.randomUUID();
-        const response = await fetch(url, {
-          cache: "no-store",
-          signal: controller.signal,
-        });
-
-        if (!response.ok) throw new Error("HTTP " + response.status);
-        const body = (await response.text()).trim();
-        if (body !== "test=test") throw new Error("Resposta inválida do servidor.");
-
-        samples.push(performance.now() - startedAt);
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          throw new Error("Tempo limite ao conectar ao servidor.");
-        }
-        throw error instanceof Error ? error : new Error("Falha na requisição HTTP.");
-      } finally {
-        window.clearTimeout(sampleTimeout);
-      }
-    };
-
-    const run = async () => {
-      timeoutId = window.setTimeout(() => finish(new Error("Tempo limite ao testar o servidor.")), PING_TIMEOUT_MS * PING_SAMPLES + 1000);
-
-      try {
-        for (let i = 0; i < PING_SAMPLES; i += 1) {
-          await runSample(i);
-        }
+      if (samples.length >= PING_SAMPLES) {
         finish();
-      } catch (error) {
-        finish(error instanceof Error ? error : new Error("Falha desconhecida."));
+        return;
+      }
+
+      waitingForPong = true;
+      pingStartedAt = performance.now();
+      socket.send("PING " + Math.round(Date.now()));
+
+      sampleTimeoutId = window.setTimeout(() => {
+        finish(new Error("Tempo limite aguardando PONG do servidor."));
+      }, PING_TIMEOUT_MS);
+    };
+
+    const handleMessage = (event: MessageEvent) => {
+      if (typeof event.data !== "string") return;
+
+      const message = event.data.trim();
+      if (!waitingForPong || !message.startsWith("PONG")) return;
+
+      waitingForPong = false;
+      if (sampleTimeoutId !== undefined) window.clearTimeout(sampleTimeoutId);
+      sampleTimeoutId = undefined;
+      samples.push(performance.now() - pingStartedAt);
+
+      if (samples.length >= PING_SAMPLES) {
+        finish();
+      } else {
+        window.setTimeout(startPing, 20);
       }
     };
 
-    void run();
+    try {
+      socket = new WebSocket(websocketUrl(server));
+      socket.onmessage = handleMessage;
+      socket.onerror = (event) => {
+        finish(new Error(socketFailure(server, event)));
+      };
+      socket.onclose = (event) => {
+        if (!settled) finish(new Error(socketFailure(server, event)));
+      };
+      socket.onopen = () => {
+        socket?.send("HI " + crypto.randomUUID());
+        socket?.send("GETIP");
+        socket?.send("CAPABILITIES");
+        startPing();
+      };
+
+      timeoutId = window.setTimeout(() => {
+        finish(new Error("Tempo limite ao conectar ao servidor Ookla via WebSocket."));
+      }, PING_TIMEOUT_MS * (PING_SAMPLES + 1));
+    } catch (error) {
+      finish(error instanceof Error ? error : new Error("Falha ao criar WebSocket."));
+    }
   });
 }
 
@@ -89,31 +139,119 @@ export async function measureOoklaLatency(server: OoklaCandidate): Promise<Ookla
     if (latencyMs === null) throw new Error("Nenhuma resposta de latência.");
     return { ...server, latencyMs, jitterMs: standardDeviation(samples, latencyMs) };
   } catch (error) {
-    return { ...server, latencyMs: null, jitterMs: null, error: error instanceof Error ? error.message : "Falha desconhecida." };
+    return {
+      ...server,
+      latencyMs: null,
+      jitterMs: null,
+      error: error instanceof Error ? error.message : "Falha desconhecida.",
+    };
   }
 }
 
 export async function findNearestOoklaServer(candidates: OoklaCandidate[] = OOKLA_CANDIDATES) {
   const results = await Promise.all(candidates.map(measureOoklaLatency));
-  const available = results.filter((r) => r.latencyMs !== null).sort((a, b) => (a.latencyMs ?? Infinity) - (b.latencyMs ?? Infinity));
-  if (!available.length) throw new Error("Não foi possível medir nenhum dos três servidores.");
+  const available = results
+    .filter((result) => result.latencyMs !== null)
+    .sort((a, b) => (a.latencyMs ?? Infinity) - (b.latencyMs ?? Infinity));
+
+  if (!available.length) {
+    throw new Error("Não foi possível medir nenhum dos três servidores.");
+  }
+
   return { selected: available[0], results };
 }
 
+function messageByteLength(data: string) {
+  return new TextEncoder().encode(data).byteLength;
+}
+
+function downloadOoklaServer(server: OoklaLatencyResult): Promise<number> {
+  return new Promise((resolve, reject) => {
+    if (server.latencyMs === null || server.jitterMs === null) {
+      reject(new Error("Servidor sem latência válida."));
+      return;
+    }
+
+    const socket = new WebSocket(websocketUrl(server));
+    socket.binaryType = "arraybuffer";
+
+    let bytes = 0;
+    let settled = false;
+    const startedAt = performance.now();
+    const timeoutId = window.setTimeout(() => {
+      finish(new Error("Tempo limite no download via WebSocket Ookla."));
+    }, DOWNLOAD_TIMEOUT_MS);
+
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeoutId);
+
+      if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+        socket.close(1000, "download concluído");
+      }
+
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      const elapsedSeconds = (performance.now() - startedAt) / 1000;
+      resolve(elapsedSeconds > 0 ? (bytes * 8) / elapsedSeconds / 1000000 : 0);
+    };
+
+    socket.onerror = () => {
+      finish(new Error("Não foi possível abrir o WebSocket para download."));
+    };
+
+    socket.onclose = (event) => {
+      if (!settled) {
+        finish(
+          new Error(
+            event.code === 1000
+              ? "O servidor encerrou o download antes de enviar os dados esperados."
+              : "WebSocket de download encerrado (código " + event.code + ").",
+          ),
+        );
+      }
+    };
+
+    socket.onmessage = (event) => {
+      if (typeof event.data === "string") {
+        // Responses to HI/GETIP/CAPABILITIES are textual; only count the data stream.
+        return;
+      }
+
+      if (event.data instanceof ArrayBuffer) {
+        bytes += event.data.byteLength;
+      } else if (event.data instanceof Blob) {
+        bytes += event.data.size;
+      } else {
+        bytes += messageByteLength(String(event.data));
+      }
+
+      if (bytes >= DOWNLOAD_SIZE_BYTES) finish();
+    };
+
+    socket.onopen = () => {
+      socket.send("HI " + crypto.randomUUID());
+      socket.send("GETIP");
+      socket.send("CAPABILITIES");
+      socket.send("DOWNLOAD " + DOWNLOAD_SIZE_BYTES);
+    };
+  });
+}
+
 export async function measureOoklaDownload(server: OoklaLatencyResult): Promise<OoklaDownloadResult> {
-  if (server.latencyMs === null || server.jitterMs === null) throw new Error("Servidor sem latência válida.");
-  const url = "https://" + server.host + "/download?nocache=" + Date.now() + "&size=" + DOWNLOAD_SIZE_BYTES + "&guid=" + crypto.randomUUID();
-  const startedAt = performance.now();
-  const response = await fetch(url, { cache: "no-store" });
-  if (!response.ok || !response.body) throw new Error("Falha no download (" + response.status + ").");
-  const reader = response.body.getReader();
-  let bytes = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    bytes += value.byteLength;
+  if (server.latencyMs === null || server.jitterMs === null) {
+    throw new Error("Servidor sem latência válida.");
   }
-  const elapsedSeconds = (performance.now() - startedAt) / 1000;
-  const downloadMbps = elapsedSeconds > 0 ? (bytes * 8) / elapsedSeconds / 1000000 : null;
-  return { server, latencyMs: server.latencyMs, jitterMs: server.jitterMs, downloadMbps };
+
+  const downloadMbps = await downloadOoklaServer(server);
+  return {
+    server,
+    latencyMs: server.latencyMs,
+    jitterMs: server.jitterMs,
+    downloadMbps,
+  };
 }
