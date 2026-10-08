@@ -38,7 +38,11 @@ create or replace function public.submit_telemetry(
   p_net_rtt integer,
   p_net_save_data boolean,
   p_ping_median double precision,
-  p_download_speed double precision
+  p_download_speed double precision,
+  p_ookla_server_id integer,
+  p_ookla_server_name varchar,
+  p_ookla_server_city varchar,
+  p_ookla_server_host varchar
 )
 returns void
 language plpgsql
@@ -64,14 +68,16 @@ begin
     battery_level, dns_server,
     client_ip, isp,
     net_effective_type, net_rtt, net_save_data,
-    ping_median, download_speed
+    ping_median, download_speed,
+    ookla_server_id, ookla_server_name, ookla_server_city, ookla_server_host
   ) values (
     p_session_id, p_user_agent, p_os, p_device_brand, p_device_model,
     p_device_model_name, p_device_model_confidence, p_ram_gb,
     p_battery_level, p_dns_server,
     p_client_ip, p_isp,
     p_net_effective_type, p_net_rtt, p_net_save_data,
-    p_ping_median, p_download_speed
+    p_ping_median, p_download_speed,
+    p_ookla_server_id, p_ookla_server_name, p_ookla_server_city, p_ookla_server_host
   );
 
   update public.telemetry_sessions set is_used = true where id = p_session_id;
@@ -80,5 +86,5 @@ $$;
 
 revoke all on function public.submit_telemetry(
   uuid,text,varchar,varchar,varchar,varchar,varchar,double precision,smallint,varchar,
-  inet,varchar,varchar,integer,boolean,double precision,double precision
+  inet,varchar,varchar,integer,boolean,double precision,double precision,integer,varchar,varchar,varchar
 ) from public;
