@@ -30,6 +30,10 @@ type MetricRow = {
   isp: string | null;
   ping_median: number | null;
   download_speed: number | null;
+  ookla_server_id: number | null;
+  ookla_server_name: string | null;
+  ookla_server_city: string | null;
+  ookla_server_host: string | null;
   collected_at: string;
 };
 
@@ -77,7 +81,7 @@ export default async function DashboardPage() {
     ? await supabaseAdmin
         .from("telemetry_metrics")
         .select(
-          "session_id, os, device_brand, device_model, device_model_name, device_model_confidence, ram_gb, battery_level, dns_server, client_ip, isp, ping_median, download_speed, collected_at",
+          "session_id, os, device_brand, device_model, device_model_name, device_model_confidence, ram_gb, battery_level, dns_server, client_ip, isp, ping_median, download_speed, ookla_server_id, ookla_server_name, ookla_server_city, ookla_server_host, collected_at",
         )
         .in("session_id", sessionIds)
     : { data: [], error: null };
@@ -131,7 +135,7 @@ export default async function DashboardPage() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Protocolo</th><th>Status</th><th>Link</th><th>Marca</th><th>Modelo</th><th>Modelo comercial</th><th>SO</th>
+                  <th>Protocolo</th><th>Status</th><th>Link</th><th>Servidor de teste</th><th>Marca</th><th>Modelo</th><th>Modelo comercial</th><th>SO</th>
                   <th>RAM</th><th>Bateria</th><th>DNS</th><th>IP</th><th>ISP</th><th>Ping</th><th>Download</th><th>Coleta</th>
                 </tr>
               </thead>
@@ -144,6 +148,7 @@ export default async function DashboardPage() {
                       <td className={styles.protocol}>{session.protocol_id}</td>
                       <td><span className={`${styles.status} ${status.className}`}>{status.label}</span></td>
                       <td>{!metric && new Date(session.expires_at) > new Date() ? <CopySessionLink sessionId={session.id} /> : "—"}</td>
+                      <td>{metric ? `${metric.ookla_server_name ?? "Não identificado"} — ${metric.ookla_server_city ?? "cidade não informada"}${metric.ookla_server_id ? ` (ID ${metric.ookla_server_id})` : ""}` : "Não informado"}</td>
                       <td>{metric?.device_brand ?? "Não informado"}</td>
                       <td>{metric?.device_model ?? "Não informado"}</td>
                       <td>{metric?.device_model_name ?? "Não identificado"}</td>

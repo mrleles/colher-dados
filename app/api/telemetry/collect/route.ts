@@ -16,6 +16,10 @@ const metricsSchema = z.object({
   netSaveData: z.boolean().optional().nullable(),
   pingMedian: z.number().finite().nonnegative().optional().nullable(),
   downloadSpeed: z.number().finite().nonnegative().optional().nullable(),
+  ooklaServerId: z.number().int().positive().optional().nullable(),
+  ooklaServerName: z.string().max(255).optional().nullable(),
+  ooklaServerCity: z.string().max(255).optional().nullable(),
+  ooklaServerHost: z.string().max(255).optional().nullable(),
 });
 
 const bodySchema = z.object({
@@ -52,6 +56,10 @@ export async function POST(request: Request) {
     p_net_save_data: metrics.netSaveData ?? null,
     p_ping_median: metrics.pingMedian ?? null,
     p_download_speed: metrics.downloadSpeed ?? null,
+    p_ookla_server_id: metrics.ooklaServerId ?? null,
+    p_ookla_server_name: metrics.ooklaServerName ?? null,
+    p_ookla_server_city: metrics.ooklaServerCity ?? null,
+    p_ookla_server_host: metrics.ooklaServerHost ?? null,
   });
 
   if (error) {
