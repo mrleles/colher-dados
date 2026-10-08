@@ -1,4 +1,4 @@
--- Telemetry schema migration: IP/ISP plus battery level and DNS resolver.
+-- Telemetry schema migration: IP/ISP, battery/DNS and Ookla test server.
 -- Apply this migration in Supabase before deploying the application.
 
 alter table public.telemetry_metrics
@@ -8,7 +8,7 @@ alter table public.telemetry_metrics
   add column if not exists client_ip inet,
   add column if not exists isp varchar(255),
   add column if not exists battery_level smallint,
-  add column if not exists dns_server varchar(255);
+  add column if not exists dns_server varchar(255),\n  add column if not exists ookla_server_id integer,\n  add column if not exists ookla_server_name varchar(255),\n  add column if not exists ookla_server_city varchar(255),\n  add column if not exists ookla_server_host varchar(255);
 
 alter table public.telemetry_metrics
   drop constraint if exists telemetry_metrics_battery_level_check;
