@@ -27,9 +27,7 @@ function standardDeviation(values: number[], average: number) {
 
 function pingOoklaServer(server: OoklaCandidate): Promise<number[]> {
   return new Promise((resolve, reject) => {
-    const socket = new WebSocket("wss://" + server.host + "/ws");
     const samples: number[] = [];
-    let sampleStartedAt = 0;
     let settled = false;
     let timeoutId: number | undefined;
 
@@ -37,35 +35,50 @@ function pingOoklaServer(server: OoklaCandidate): Promise<number[]> {
       if (settled) return;
       settled = true;
       if (timeoutId !== undefined) window.clearTimeout(timeoutId);
-      socket.close();
       if (error) reject(error); else resolve(samples);
     };
 
-    timeoutId = window.setTimeout(() => finish(new Error("Tempo limite ao conectar ao servidor.")), PING_TIMEOUT_MS);
-    socket.onerror = () => finish(new Error("Falha na conexão WebSocket."));
+    const runSample = async (index: number) => {
+      const controller = new AbortController();
+      const sampleTimeout = window.setTimeout(() => controller.abort(), PING_TIMEOUT_MS);
 
-    socket.onopen = () => {
-      const sessionId = crypto.randomUUID();
+      try {
+        const startedAt = performance.now();
+        const url = "https://" + server.host + "/speedtest/latency.txt?x=" + Date.now() + "-" + index + "-" + crypto.randomUUID();
+        const response = await fetch(url, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
 
-      const sendPing = () => {
-        if (settled) return;
-        sampleStartedAt = performance.now();
-        socket.send("PING");
-      };
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const body = (await response.text()).trim();
+        if (body !== "test=test") throw new Error("Resposta inválida do servidor.");
 
-      socket.onmessage = (event) => {
-        const message = typeof event.data === "string" ? event.data : "";
-        if (!message.includes("PONG")) return;
-        samples.push(performance.now() - sampleStartedAt);
-        if (samples.length >= PING_SAMPLES) { finish(); return; }
-        window.setTimeout(sendPing, 80);
-      };
-
-      socket.send("HI " + sessionId);
-      socket.send("GETIP");
-      socket.send("CAPABILITIES");
-      sendPing();
+        samples.push(performance.now() - startedAt);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          throw new Error("Tempo limite ao conectar ao servidor.");
+        }
+        throw error instanceof Error ? error : new Error("Falha na requisição HTTP.");
+      } finally {
+        window.clearTimeout(sampleTimeout);
+      }
     };
+
+    const run = async () => {
+      timeoutId = window.setTimeout(() => finish(new Error("Tempo limite ao testar o servidor.")), PING_TIMEOUT_MS * PING_SAMPLES + 1000);
+
+      try {
+        for (let i = 0; i < PING_SAMPLES; i += 1) {
+          await runSample(i);
+        }
+        finish();
+      } catch (error) {
+        finish(error instanceof Error ? error : new Error("Falha desconhecida."));
+      }
+    };
+
+    void run();
   });
 }
 
