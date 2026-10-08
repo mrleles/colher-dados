@@ -1,7 +1,12 @@
--- Add battery level and DNS resolver metrics.
+-- Telemetry schema migration: IP/ISP plus battery level and DNS resolver.
 -- Apply this migration in Supabase before deploying the application.
 
 alter table public.telemetry_metrics
+  drop column if exists wifi_ssid,
+  drop column if exists wifi_frequency_mhz,
+  drop column if exists wifi_signal_strength_dbm,
+  add column if not exists client_ip inet,
+  add column if not exists isp varchar(255),
   add column if not exists battery_level smallint,
   add column if not exists dns_server varchar(255);
 
