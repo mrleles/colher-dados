@@ -46,16 +46,12 @@ function pingOoklaServer(server: OoklaCandidate): Promise<number[]> {
 
     socket.onopen = () => {
       const sessionId = crypto.randomUUID();
-      socket.send("HI " + sessionId);
-      socket.send("GETIP");
-      socket.send("CAPABILITIES");
 
       const sendPing = () => {
         if (settled) return;
         sampleStartedAt = performance.now();
         socket.send("PING");
       };
-      sendPing();
 
       socket.onmessage = (event) => {
         const message = typeof event.data === "string" ? event.data : "";
@@ -64,6 +60,11 @@ function pingOoklaServer(server: OoklaCandidate): Promise<number[]> {
         if (samples.length >= PING_SAMPLES) { finish(); return; }
         window.setTimeout(sendPing, 80);
       };
+
+      socket.send("HI " + sessionId);
+      socket.send("GETIP");
+      socket.send("CAPABILITIES");
+      sendPing();
     };
   });
 }
