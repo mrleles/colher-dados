@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { findNearestOoklaServer, measureOoklaDownload, measureOoklaLatency, OOKLA_CANDIDATES, type OoklaLatencyResult } from "@/lib/telemetry/ookla-browser";
+import { measureOoklaDownload, measureOoklaLatency, OOKLA_CANDIDATES, type OoklaLatencyResult } from "@/lib/telemetry/ookla-browser";
 
 export default function SpeedTestPage() {
   const [results, setResults] = useState<OoklaLatencyResult[]>([]);
@@ -27,12 +27,12 @@ export default function SpeedTestPage() {
       return;
     }
 
-    const nearest = await findNearestOoklaServer(measured.map(({ id, name, city, host }) => ({ id, name, city, host })));
-    setSelected(nearest.selected);
-    setMessage("Servidor escolhido: " + nearest.selected.name + " — " + nearest.selected.city + ". Medindo download…");
+    const nearest = available[0];
+    setSelected(nearest);
+    setMessage("Servidor escolhido: " + nearest.name + " — " + nearest.city + ". Medindo download…");
 
     try {
-      const downloadResult = await measureOoklaDownload(nearest.selected);
+      const downloadResult = await measureOoklaDownload(nearest);
       setDownload(downloadResult.downloadMbps);
       setMessage("Teste concluído.");
     } catch (error) {
