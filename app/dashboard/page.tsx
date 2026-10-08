@@ -148,7 +148,8 @@ export default async function DashboardPage() {
                       <td className={styles.protocol}>{session.protocol_id}</td>
                       <td><span className={`${styles.status} ${status.className}`}>{status.label}</span></td>
                       <td>{!metric && new Date(session.expires_at) > new Date() ? <CopySessionLink sessionId={session.id} /> : "—"}</td>
-                      <td>{metric ? `${metric.ookla_server_name ?? "Não identificado"} — ${metric.ookla_server_city ?? "cidade não informada"}` : "Não informado"}</td>\n                      <td>{metric?.device_brand ?? "Não informado"}</td>
+                      <td>{metric ? `${metric.ookla_server_name ?? "Não identificado"} — ${metric.ookla_server_city ?? "cidade não informada"}${metric.ookla_server_id ? ` (ID ${metric.ookla_server_id})` : ""}` : "Não informado"}</td>
+                      <td>{metric?.device_brand ?? "Não informado"}</td>
                       <td>{metric?.device_model ?? "Não informado"}</td>
                       <td>{metric?.device_model_name ?? "Não identificado"}</td>
                       <td>{metric?.os ?? "Não informado"}</td>
