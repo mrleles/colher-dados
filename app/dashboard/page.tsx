@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import styles from "./dashboard.module.css";
 import CreateSessionForm from "./create-session-form";
 import CopySessionLink from "./copy-session-link";
+import { AccordionCard, AccordionCards } from "./accordion-cards";
 
 export const dynamic = "force-dynamic";
 
@@ -18,11 +19,8 @@ type SessionRow = {
 
 type MetricRow = {
   session_id: string;
-  os: string | null;
   device_brand: string | null;
-  device_model: string | null;
   device_model_name: string | null;
-  device_model_confidence: string | null;
   ram_gb: number | null;
   battery_level: number | null;
   dns_server: string | null;
@@ -30,6 +28,10 @@ type MetricRow = {
   isp: string | null;
   ping_median: number | null;
   download_speed: number | null;
+  ookla_server_id: number | null;
+  ookla_server_name: string | null;
+  ookla_server_city: string | null;
+  ookla_server_host: string | null;
   collected_at: string;
 };
 
@@ -52,6 +54,15 @@ function statusFor(session: SessionRow, metric?: MetricRow) {
     return { label: "Expirado", className: styles.statusExpired };
   }
   return { label: "Aguardando", className: styles.statusWaiting };
+}
+
+function InfoItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className={styles.infoItem}>
+      <span>{label}</span>
+      <strong title={value}>{value}</strong>
+    </div>
+  );
 }
 
 export default async function DashboardPage() {
@@ -77,7 +88,7 @@ export default async function DashboardPage() {
     ? await supabaseAdmin
         .from("telemetry_metrics")
         .select(
-          "session_id, os, device_brand, device_model, device_model_name, device_model_confidence, ram_gb, battery_level, dns_server, client_ip, isp, ping_median, download_speed, collected_at",
+          "session_id, device_brand, device_model_name, ram_gb, battery_level, dns_server, client_ip, isp, ping_median, download_speed, ookla_server_id, ookla_server_name, ookla_server_city, ookla_server_host, collected_at",
         )
         .in("session_id", sessionIds)
     : { data: [], error: null };
@@ -123,45 +134,68 @@ export default async function DashboardPage() {
           <p>Use o botão acima para gerar o primeiro link de coleta.</p>
         </section>
       ) : (
-        <section className={styles.tableCard}>
-          <div className={styles.tableHeader}>
-            <div><h2>Coletas recentes</h2><p>Últimas 100 sessões, da mais recente para a mais antiga.</p></div>
+        <section className={styles.collectionSection}>
+          <div className={styles.collectionHeader}>
+            <div>
+              <h2>Coletas recentes</h2>
+              <p>Últimas 100 sessões, da mais recente para a mais antiga.</p>
+            </div>
           </div>
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Protocolo</th><th>Status</th><th>Link</th><th>Marca</th><th>Modelo</th><th>Modelo comercial</th><th>SO</th>
-                  <th>RAM</th><th>Bateria</th><th>DNS</th><th>IP</th><th>ISP</th><th>Ping</th><th>Download</th><th>Coleta</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sessionRows.map((session) => {
-                  const metric = metricBySession.get(session.id);
-                  const status = statusFor(session, metric);
-                  return (
-                    <tr key={session.id}>
-                      <td className={styles.protocol}>{session.protocol_id}</td>
-                      <td><span className={`${styles.status} ${status.className}`}>{status.label}</span></td>
-                      <td>{!metric && new Date(session.expires_at) > new Date() ? <CopySessionLink sessionId={session.id} /> : "—"}</td>
-                      <td>{metric?.device_brand ?? "Não informado"}</td>
-                      <td>{metric?.device_model ?? "Não informado"}</td>
-                      <td>{metric?.device_model_name ?? "Não identificado"}</td>
-                      <td>{metric?.os ?? "Não informado"}</td>
-                      <td>{formatNumber(metric?.ram_gb ?? null, " GB")}</td>
-                      <td>{formatNumber(metric?.battery_level ?? null, "%")}</td>
-                      <td>{metric?.dns_server ?? "Não identificado"}</td>
-                      <td>{metric?.client_ip ?? "Não informado"}</td>
-                      <td>{metric?.isp ?? "Não identificado"}</td>
-                      <td>{formatNumber(metric?.ping_median ?? null, " ms")}</td>
-                      <td>{formatNumber(metric?.download_speed ?? null, " Mbps")}</td>
-                      <td>{formatDate(metric?.collected_at ?? null)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <AccordionCards initialOpenId={sessionRows[0].id}>
+            {sessionRows.map((session) => {
+              const metric = metricBySession.get(session.id);
+              const status = statusFor(session, metric);
+              const serverName = metric
+                ? `${metric.ookla_server_name ?? "Não identificado"} — ${metric.ookla_server_city ?? "cidade não informada"}${metric.ookla_server_id ? ` (ID ${metric.ookla_server_id})` : ""}`
+                : "Aguardando teste de velocidade";
+
+              return (
+                <AccordionCard
+                  key={session.id}
+                  id={session.id}
+                  protocolId={session.protocol_id}
+                  statusLabel={status.label}
+                  statusClassName={status.className}
+                >
+                  <div className={styles.speedPanel}>
+                    <div className={styles.speedItem}>
+                      <span>Download</span>
+                      <strong>{formatNumber(metric?.download_speed ?? null, " Mbps")}</strong>
+                    </div>
+                    <div className={styles.speedDivider} />
+                    <div className={styles.speedItem}>
+                      <span>Ping</span>
+                      <strong>{formatNumber(metric?.ping_median ?? null, " ms")}</strong>
+                    </div>
+                  </div>
+
+                  <div className={styles.serverPanel}>
+                    <span>Servidor de teste</span>
+                    <strong>{serverName}</strong>
+                    {metric?.ookla_server_host ? <small>{metric.ookla_server_host}</small> : null}
+                  </div>
+
+                  <div className={styles.infoGrid}>
+                    <InfoItem label="Marca" value={metric?.device_brand ?? "Não informado"} />
+                    <InfoItem label="Modelo comercial" value={metric?.device_model_name ?? "Não identificado"} />
+                    <InfoItem label="RAM" value={formatNumber(metric?.ram_gb ?? null, " GB")} />
+                    <InfoItem label="Bateria" value={formatNumber(metric?.battery_level ?? null, "%")} />
+                    <InfoItem label="Provedor (ISP)" value={metric?.isp ?? "Não identificado"} />
+                    <InfoItem label="IP público" value={metric?.client_ip ?? "Não informado"} />
+                    <InfoItem label="DNS" value={metric?.dns_server ?? "Não identificado"} />
+                    <InfoItem label="Data da coleta" value={formatDate(metric?.collected_at ?? null)} />
+                  </div>
+
+                  {!metric && new Date(session.expires_at) > new Date() ? (
+                    <div className={styles.cardFooter}>
+                      <span>Link válido até {formatDate(session.expires_at)}</span>
+                      <CopySessionLink sessionId={session.id} />
+                    </div>
+                  ) : null}
+                </AccordionCard>
+              );
+            })}
+          </AccordionCards>
         </section>
       )}
     </main>

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { collectBatteryLevel, collectDeviceInfo } from "@/lib/telemetry/device";
+import { findNearestOoklaServer, measureOoklaDownload } from "@/lib/telemetry/ookla-browser";
 
 type Status = "coletando" | "enviando" | "sucesso" | "erro";
 
@@ -32,16 +33,6 @@ function median(values: number[]) {
   if (!sorted.length) return null;
   const middle = Math.floor(sorted.length / 2);
   return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
-}
-
-async function measureLatency(url: string) {
-  const samples: number[] = [];
-  for (let i = 0; i < 5; i += 1) {
-    const start = performance.now();
-    await fetch(url, { cache: "no-store", method: "HEAD" });
-    samples.push(performance.now() - start);
-  }
-  return median(samples);
 }
 
 function probeDnsHostname(hostname: string) {
@@ -127,14 +118,14 @@ async function collectMetrics() {
   const batteryLevel = await collectBatteryLevel();
   const dnsServer = await collectDnsServer();
 
-  const pingMedian = await measureLatency("/api/telemetry/ping");
-
-  const start = performance.now();
-  const response = await fetch("/api/telemetry/download", { cache: "no-store" });
-  if (!response.ok) throw new Error("Falha no teste de download.");
-  const bytes = (await response.arrayBuffer()).byteLength;
-  const elapsedSeconds = (performance.now() - start) / 1000;
-  const downloadSpeed = elapsedSeconds > 0 ? (bytes * 8) / elapsedSeconds / 1_000_000 : null;
+  const nearest = await findNearestOoklaServer();
+  const downloadResult = await measureOoklaDownload(nearest.selected);
+  const pingMedian = downloadResult.latencyMs;
+  const downloadSpeed = downloadResult.downloadMbps;
+  const ooklaServerId = nearest.selected.id;
+  const ooklaServerName = nearest.selected.name;
+  const ooklaServerCity = nearest.selected.city;
+  const ooklaServerHost = nearest.selected.host;
 
   return {
     userAgent,
@@ -153,6 +144,10 @@ async function collectMetrics() {
     netSaveData: connection?.saveData ?? null,
     pingMedian,
     downloadSpeed,
+    ooklaServerId,
+    ooklaServerName,
+    ooklaServerCity,
+    ooklaServerHost,
   };
 }
 
