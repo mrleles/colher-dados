@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import styles from "./dashboard.module.css";
 import CreateSessionForm from "./create-session-form";
 import CopySessionLink from "./copy-session-link";
+import { AccordionCard, AccordionCards } from "./accordion-cards";
 
 export const dynamic = "force-dynamic";
 
@@ -140,7 +141,7 @@ export default async function DashboardPage() {
               <p>Últimas 100 sessões, da mais recente para a mais antiga.</p>
             </div>
           </div>
-          <div className={styles.collectionGrid}>
+          <AccordionCards initialOpenId={sessionRows[0].id}>
             {sessionRows.map((session) => {
               const metric = metricBySession.get(session.id);
               const status = statusFor(session, metric);
@@ -149,15 +150,13 @@ export default async function DashboardPage() {
                 : "Aguardando teste de velocidade";
 
               return (
-                <article className={styles.collectionCard} key={session.id}>
-                  <div className={styles.cardHeader}>
-                    <div>
-                      <span className={styles.cardEyebrow}>PROTOCOLO</span>
-                      <h3>{session.protocol_id}</h3>
-                    </div>
-                    <span className={`${styles.status} ${status.className}`}>{status.label}</span>
-                  </div>
-
+                <AccordionCard
+                  key={session.id}
+                  id={session.id}
+                  protocolId={session.protocol_id}
+                  statusLabel={status.label}
+                  statusClassName={status.className}
+                >
                   <div className={styles.speedPanel}>
                     <div className={styles.speedItem}>
                       <span>Download</span>
@@ -193,10 +192,10 @@ export default async function DashboardPage() {
                       <CopySessionLink sessionId={session.id} />
                     </div>
                   ) : null}
-                </article>
+                </AccordionCard>
               );
             })}
-          </div>
+          </AccordionCards>
         </section>
       )}
     </main>
