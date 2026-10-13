@@ -620,3 +620,92 @@ tbody tr:hover {
     flex-direction: column;
   }
 }
+
+
+/* Cartões expansíveis: um único protocolo aberto por vez */
+.collectionCard {
+  padding: 0;
+  overflow: hidden;
+}
+
+.cardHeaderButton {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 20px 22px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cardHeaderButton:hover {
+  background: rgb(255 255 255 / 3%);
+}
+
+.cardHeaderButton:focus-visible {
+  outline: 2px solid #79cbb7;
+  outline-offset: -3px;
+}
+
+.cardHeaderTitle {
+  display: block;
+  min-width: 0;
+}
+
+.cardProtocol {
+  display: block;
+  overflow-wrap: anywhere;
+  color: #f4f7fb;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.cardHeaderMeta {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.cardChevron {
+  display: inline-block;
+  color: #9cb8b5;
+  font-size: 22px;
+  line-height: 1;
+  transform: rotate(0deg);
+  transition: transform 160ms ease;
+}
+
+.cardChevronOpen {
+  transform: rotate(180deg);
+}
+
+.cardBody {
+  padding: 0 22px 22px;
+  border-top: 1px solid #25313d;
+}
+
+.cardBody .speedPanel {
+  margin-top: 18px;
+}
+
+@media (max-width: 520px) {
+  .cardHeaderButton {
+    padding: 17px 15px;
+  }
+
+  .cardHeaderMeta {
+    gap: 7px;
+  }
+
+  .cardBody {
+    padding: 0 15px 15px;
+  }
+}
