@@ -363,3 +363,260 @@ tbody tr:hover {
 .copyPending:hover {
   background: #1c2631;
 }
+
+
+/* Layout de cartões para leitura sem rolagem horizontal */
+.page {
+  padding: 32px clamp(20px, 2.2vw, 44px);
+}
+
+.header,
+.generator,
+.summary {
+  max-width: 1760px;
+}
+
+.collectionSection {
+  width: 100%;
+  max-width: 1760px;
+  margin: 0 auto;
+}
+
+.collectionHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 16px;
+}
+
+.collectionHeader h2 {
+  margin: 0;
+  font-size: 21px;
+  letter-spacing: -0.02em;
+}
+
+.collectionHeader p {
+  margin: 6px 0 0;
+  color: #8ea2b8;
+  font-size: 13px;
+}
+
+.collectionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.collectionCard {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid #263442;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #121c26 0%, #10161e 72%);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #25313d;
+}
+
+.cardHeader > div {
+  min-width: 0;
+}
+
+.cardEyebrow {
+  display: block;
+  margin-bottom: 5px;
+  color: #8ea2b8;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.cardHeader h3 {
+  overflow-wrap: anywhere;
+  margin: 0;
+  color: #f4f7fb;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+.speedPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
+  align-items: center;
+  gap: 20px;
+  margin: 16px 0;
+  padding: 18px 20px;
+  border: 1px solid #214a45;
+  border-radius: 11px;
+  background: #0d211f;
+}
+
+.speedItem {
+  min-width: 0;
+}
+
+.speedItem span,
+.serverPanel > span {
+  display: block;
+  margin-bottom: 7px;
+  color: #9cb8b5;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.speedItem strong {
+  display: block;
+  overflow-wrap: anywhere;
+  color: #b7f7dc;
+  font-size: clamp(20px, 1.5vw, 28px);
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.speedDivider {
+  width: 1px;
+  align-self: stretch;
+  background: #28534d;
+}
+
+.serverPanel {
+  min-width: 0;
+  margin-bottom: 18px;
+  padding: 13px 15px;
+  border-left: 3px solid #5cae9d;
+  border-radius: 0 8px 8px 0;
+  background: #151f28;
+}
+
+.serverPanel > span {
+  margin-bottom: 5px;
+  color: #8ea2b8;
+}
+
+.serverPanel strong {
+  display: block;
+  overflow-wrap: anywhere;
+  color: #e8edf3;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.serverPanel small {
+  display: block;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+  color: #8ea2b8;
+  font-size: 11px;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px 18px;
+}
+
+.infoItem {
+  min-width: 0;
+}
+
+.infoItem span {
+  display: block;
+  margin-bottom: 5px;
+  color: #8ea2b8;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.infoItem strong {
+  display: block;
+  overflow-wrap: anywhere;
+  color: #e4eaf1;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.cardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 15px;
+  border-top: 1px solid #25313d;
+}
+
+.cardFooter > span {
+  color: #a7b5c5;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+@media (max-width: 1400px) {
+  .collectionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .infoGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .page {
+    padding: 24px 16px;
+  }
+
+  .infoGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .collectionCard {
+    padding: 18px;
+  }
+
+  .speedPanel {
+    gap: 14px;
+    padding: 15px;
+  }
+}
+
+@media (max-width: 520px) {
+  .collectionCard {
+    padding: 15px;
+  }
+
+  .cardHeader {
+    align-items: flex-start;
+  }
+
+  .speedPanel {
+    gap: 10px;
+    padding: 13px 11px;
+  }
+
+  .speedItem strong {
+    font-size: 20px;
+  }
+
+  .infoGrid {
+    gap: 14px 12px;
+  }
+
+  .cardFooter {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
