@@ -11,6 +11,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <main style={{
       minHeight: "100vh",
+      boxSizing: "border-box",
       display: "grid",
       placeItems: "center",
       padding: 24,
