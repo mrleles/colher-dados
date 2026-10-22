@@ -38,16 +38,16 @@ function median(values: number[]) {
 function probeDnsHostname(hostname: string) {
   return new Promise<void>((resolve) => {
     const image = new Image();
-    const timeout = window.setTimeout(() => {
-      image.src = "";
-      resolve();
-    }, 1500);
+    let finished = false;
 
     const finish = () => {
+      if (finished) return;
+      finished = true;
       window.clearTimeout(timeout);
       resolve();
     };
 
+    const timeout = window.setTimeout(finish, 2500);
     image.onload = finish;
     image.onerror = finish;
     image.src = `https://${hostname}/`;
@@ -63,22 +63,44 @@ function formatDnsResolver(resolver: NonNullable<DnsLeakResult["resolvers"]>[num
   return operator || hostname || address || null;
 }
 
+function logDnsDiagnostic(stage: string, detail: string) {
+  // The collection remains best-effort. Diagnostics intentionally omit test IDs,
+  // customer tokens, IP addresses and probe hostnames.
+  console.warn(`[telemetry:dns] ${stage}: ${detail}`);
+}
+
 async function collectDnsServer(): Promise<string | null> {
+  let stage = "create-test";
+
   try {
     const response = await fetch("https://dnsleak.dev/api/new", {
       headers: { Accept: "application/json" },
       cache: "no-store",
     });
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      logDnsDiagnostic(stage, `API respondeu HTTP ${response.status}`);
+      return null;
+    }
 
-    const data = (await response.json()) as { testId?: string; hostnames?: string[] };
-    if (!data.testId || !Array.isArray(data.hostnames) || data.hostnames.length === 0) return null;
+    const data = (await response.json()) as { testId?: string; hostnames?: unknown };
+    const hostnames = Array.isArray(data.hostnames)
+      ? data.hostnames.filter((hostname): hostname is string => typeof hostname === "string" && hostname.length > 0)
+      : [];
 
-    await Promise.all(data.hostnames.map(probeDnsHostname));
+    if (!data.testId || hostnames.length === 0) {
+      logDnsDiagnostic(stage, "resposta sem testId ou sem hostnames válidos");
+      return null;
+    }
 
-    for (let attempt = 0; attempt < 6; attempt += 1) {
-      await new Promise((resolve) => window.setTimeout(resolve, attempt === 0 ? 1000 : 500));
+    stage = "probe-hostnames";
+    await Promise.all(hostnames.map(probeDnsHostname));
+
+    stage = "poll-results";
+    let lastHttpStatus: number | null = null;
+
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      await new Promise((resolve) => window.setTimeout(resolve, attempt === 0 ? 1000 : 700));
 
       const resultResponse = await fetch(
         `https://dnsleak.dev/api/result/${encodeURIComponent(data.testId)}`,
@@ -88,11 +110,14 @@ async function collectDnsServer(): Promise<string | null> {
         },
       );
 
-      if (!resultResponse.ok) continue;
+      if (!resultResponse.ok) {
+        lastHttpStatus = resultResponse.status;
+        continue;
+      }
 
       const result = (await resultResponse.json()) as DnsLeakResult;
       const resolvers = (result.resolvers ?? [])
-        .filter((resolver) => resolver.role === "resolver")
+        .filter((resolver) => resolver.role?.toLowerCase() === "resolver")
         .sort((a, b) => (b.count ?? 0) - (a.count ?? 0));
 
       const values = resolvers
@@ -103,8 +128,15 @@ async function collectDnsServer(): Promise<string | null> {
         return [...new Set(values)].slice(0, 3).join(", ").slice(0, 255);
       }
     }
-  } catch {
-    // DNS identification is best-effort and must never block the collection.
+
+    if (lastHttpStatus !== null) {
+      logDnsDiagnostic(stage, `API de resultado respondeu HTTP ${lastHttpStatus}`);
+    } else {
+      logDnsDiagnostic(stage, "nenhum resolver foi identificado após as tentativas de consulta");
+    }
+  } catch (cause) {
+    const detail = cause instanceof Error ? cause.name : "erro inesperado";
+    logDnsDiagnostic(stage, `falha de rede ou resposta inválida (${detail})`);
   }
 
   return null;
