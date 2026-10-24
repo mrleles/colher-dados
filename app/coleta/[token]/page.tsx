@@ -218,7 +218,7 @@ export default function CollectionPage({ params }: { params: Promise<{ token: st
   }, [params]);
 
   return (
-    <main>
+    <main style={{ color: "#fff" }}>
       <h1>Verificação de conexão</h1>
       {status === "coletando" && <p>Coletando dados do dispositivo e da conexão…</p>}
       {status === "enviando" && <p>Enviando os dados ao atendente…</p>}
