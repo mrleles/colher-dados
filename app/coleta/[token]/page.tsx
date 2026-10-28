@@ -73,7 +73,7 @@ async function collectDnsServer(): Promise<string | null> {
   let stage = "create-test";
 
   try {
-    const response = await fetch("https://dnsleak.dev/api/new", {
+    const response = await fetch("/api/dns/new", {
       headers: { Accept: "application/json" },
       cache: "no-store",
     });
@@ -103,7 +103,7 @@ async function collectDnsServer(): Promise<string | null> {
       await new Promise((resolve) => window.setTimeout(resolve, attempt === 0 ? 1000 : 700));
 
       const resultResponse = await fetch(
-        `https://dnsleak.dev/api/result/${encodeURIComponent(data.testId)}`,
+        `/api/dns/result/${encodeURIComponent(data.testId)}`,
         {
           headers: { Accept: "application/json" },
           cache: "no-store",
