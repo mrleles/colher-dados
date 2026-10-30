@@ -18,13 +18,18 @@ type NavigatorWithConnection = Navigator & {
 };
 
 type DnsLeakResult = {
+  groups?: Array<{
+    label?: string;
+    members?: string[];
+  }>;
   resolvers?: Array<{
     role?: string;
     operator?: string;
     hostname?: string;
     count?: number;
     transport?: string;
-    members?: string[];
+    ip?: string;
+    address?: string;
   }>;
 };
 
@@ -54,13 +59,29 @@ function probeDnsHostname(hostname: string) {
   });
 }
 
-function formatDnsResolver(resolver: NonNullable<DnsLeakResult["resolvers"]>[number]) {
+function formatDnsResolver(
+  resolver: NonNullable<DnsLeakResult["resolvers"]>[number],
+  groups: NonNullable<DnsLeakResult["groups"]>,
+) {
   const operator = resolver.operator?.trim();
   const hostname = resolver.hostname?.trim();
-  const address = resolver.members?.[0]?.trim();
+  const group = operator
+    ? groups.find((item) => item.label?.trim().toLowerCase() === operator.toLowerCase())
+    : undefined;
+  const addresses = [
+    ...(group?.members ?? []),
+    resolver.ip,
+    resolver.address,
+  ]
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const uniqueAddresses = [...new Set(addresses)].slice(0, 3);
 
-  if (operator && address) return `${operator} (${address})`;
-  return operator || hostname || address || null;
+  if (operator && uniqueAddresses.length) {
+    return `${operator} (${uniqueAddresses.join(", ")})`;
+  }
+  return operator || hostname || uniqueAddresses[0] || null;
 }
 
 function logDnsProgress(stage: string, detail: string) {
@@ -130,7 +151,7 @@ async function collectDnsServer(): Promise<string | null> {
         .sort((a, b) => (b.count ?? 0) - (a.count ?? 0));
 
       const values = resolvers
-        .map(formatDnsResolver)
+        .map((resolver) => formatDnsResolver(resolver, result.groups ?? []))
         .filter((value): value is string => Boolean(value));
 
       if (values.length) {
