@@ -7,6 +7,8 @@ const publicPaths = [
   "/api/telemetry/collect",
   "/api/telemetry/ping",
   "/api/telemetry/download",
+  "/api/dns/new",
+  "/api/dns/result/",
 ];
 
 function isPublicPath(pathname: string) {
