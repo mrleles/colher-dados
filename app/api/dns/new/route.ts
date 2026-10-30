@@ -1,6 +1,26 @@
 export const runtime = "edge";
 export const dynamic = "force-dynamic";
 
+const MAX_HOSTNAMES = 100;
+const DNS_HOSTNAME_PATTERN = /^(?=.{1,253}$)(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)(?:\.(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?))*\.?$/;
+const TEST_ID_PATTERN = /^[a-zA-Z0-9_-]{1,128}$/;
+
+function isDnsTestPayload(value: unknown): value is { testId: string; hostnames: string[] } {
+  if (!value || typeof value !== "object") return false;
+
+  const payload = value as { testId?: unknown; hostnames?: unknown };
+  return (
+    typeof payload.testId === "string" &&
+    TEST_ID_PATTERN.test(payload.testId) &&
+    Array.isArray(payload.hostnames) &&
+    payload.hostnames.length > 0 &&
+    payload.hostnames.length <= MAX_HOSTNAMES &&
+    payload.hostnames.every(
+      (hostname) => typeof hostname === "string" && DNS_HOSTNAME_PATTERN.test(hostname),
+    )
+  );
+}
+
 export async function GET() {
   try {
     const upstream = await fetch("https://dnsleak.dev/api/new", {
@@ -17,7 +37,7 @@ export async function GET() {
         contentType,
       });
       return Response.json(
-        { error: "O serviço externo de DNS não conseguiu iniciar o teste.", upstreamStatus: upstream.status },
+        { error: "O serviço externo de DNS não conseguiu iniciar o teste." },
         { status: 502, headers: { "Cache-Control": "no-store" } },
       );
     }
@@ -37,18 +57,13 @@ export async function GET() {
       );
     }
 
-    if (
-      !data ||
-      typeof data !== "object" ||
-      typeof (data as { testId?: unknown }).testId !== "string" ||
-      !Array.isArray((data as { hostnames?: unknown }).hostnames)
-    ) {
+    if (!isDnsTestPayload(data)) {
       console.error("[telemetry:dns] upstream create-test returned an unexpected payload", {
         status: upstream.status,
         contentType,
       });
       return Response.json(
-        { error: "O serviço externo de DNS retornou dados incompletos." },
+        { error: "O serviço externo de DNS retornou dados incompletos ou inválidos." },
         { status: 502, headers: { "Cache-Control": "no-store" } },
       );
     }
