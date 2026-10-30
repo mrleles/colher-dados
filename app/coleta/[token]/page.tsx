@@ -18,13 +18,18 @@ type NavigatorWithConnection = Navigator & {
 };
 
 type DnsLeakResult = {
+  groups?: Array<{
+    label?: string;
+    members?: string[];
+  }>;
   resolvers?: Array<{
     role?: string;
     operator?: string;
     hostname?: string;
     count?: number;
     transport?: string;
-    members?: string[];
+    ip?: string;
+    address?: string;
   }>;
 };
 
@@ -54,13 +59,35 @@ function probeDnsHostname(hostname: string) {
   });
 }
 
-function formatDnsResolver(resolver: NonNullable<DnsLeakResult["resolvers"]>[number]) {
+function formatDnsResolver(
+  resolver: NonNullable<DnsLeakResult["resolvers"]>[number],
+  groups: NonNullable<DnsLeakResult["groups"]>,
+) {
   const operator = resolver.operator?.trim();
   const hostname = resolver.hostname?.trim();
-  const address = resolver.members?.[0]?.trim();
+  const group = operator
+    ? groups.find((item) => item.label?.trim().toLowerCase() === operator.toLowerCase())
+    : undefined;
+  const addresses = [
+    ...(group?.members ?? []),
+    resolver.ip,
+    resolver.address,
+  ]
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const uniqueAddresses = [...new Set(addresses)].slice(0, 3);
 
-  if (operator && address) return `${operator} (${address})`;
-  return operator || hostname || address || null;
+  if (operator && uniqueAddresses.length) {
+    return `${operator} (${uniqueAddresses.join(", ")})`;
+  }
+  return operator || hostname || uniqueAddresses[0] || null;
+}
+
+function logDnsProgress(stage: string, detail: string) {
+  // Progress logs help distinguish an unexecuted routine from a failed DNS lookup.
+  // Do not include test IDs, customer tokens, IP addresses or probe hostnames.
+  console.info(`[telemetry:dns] ${stage}: ${detail}`);
 }
 
 function logDnsDiagnostic(stage: string, detail: string) {
@@ -73,7 +100,8 @@ async function collectDnsServer(): Promise<string | null> {
   let stage = "create-test";
 
   try {
-    const response = await fetch("https://dnsleak.dev/api/new", {
+    logDnsProgress(stage, "iniciando teste DNS");
+    const response = await fetch("/api/dns/new", {
       headers: { Accept: "application/json" },
       cache: "no-store",
     });
@@ -93,8 +121,10 @@ async function collectDnsServer(): Promise<string | null> {
       return null;
     }
 
+    logDnsProgress(stage, `teste criado; ${hostnames.length} sondagens preparadas`);
     stage = "probe-hostnames";
     await Promise.all(hostnames.map(probeDnsHostname));
+    logDnsProgress(stage, "sondagens concluídas; consultando resolvedores");
 
     stage = "poll-results";
     let lastHttpStatus: number | null = null;
@@ -103,7 +133,7 @@ async function collectDnsServer(): Promise<string | null> {
       await new Promise((resolve) => window.setTimeout(resolve, attempt === 0 ? 1000 : 700));
 
       const resultResponse = await fetch(
-        `https://dnsleak.dev/api/result/${encodeURIComponent(data.testId)}`,
+        `/api/dns/result/${encodeURIComponent(data.testId)}`,
         {
           headers: { Accept: "application/json" },
           cache: "no-store",
@@ -121,11 +151,13 @@ async function collectDnsServer(): Promise<string | null> {
         .sort((a, b) => (b.count ?? 0) - (a.count ?? 0));
 
       const values = resolvers
-        .map(formatDnsResolver)
+        .map((resolver) => formatDnsResolver(resolver, result.groups ?? []))
         .filter((value): value is string => Boolean(value));
 
       if (values.length) {
-        return [...new Set(values)].slice(0, 3).join(", ").slice(0, 255);
+        const uniqueValues = [...new Set(values)].slice(0, 3);
+        logDnsProgress(stage, `${uniqueValues.length} resolvedor(es) identificado(s)`);
+        return uniqueValues.join(", ").slice(0, 255);
       }
     }
 

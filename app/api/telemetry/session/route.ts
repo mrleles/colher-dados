@@ -46,7 +46,12 @@ export async function POST(request: Request) {
     return Response.json({ error: "Não foi possível criar a coleta." }, { status: 500 });
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin;
+  const requestOrigin = new URL(request.url).origin;
+  // Preview links must stay on the Preview deployment being tested. In production,
+  // keep honoring NEXT_PUBLIC_APP_URL for the canonical application domain.
+  const baseUrl = process.env.VERCEL_ENV === "preview"
+    ? requestOrigin
+    : process.env.NEXT_PUBLIC_APP_URL ?? requestOrigin;
   return Response.json({
     token: id,
     protocolId,
