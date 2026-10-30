@@ -63,6 +63,12 @@ function formatDnsResolver(resolver: NonNullable<DnsLeakResult["resolvers"]>[num
   return operator || hostname || address || null;
 }
 
+function logDnsProgress(stage: string, detail: string) {
+  // Progress logs help distinguish an unexecuted routine from a failed DNS lookup.
+  // Do not include test IDs, customer tokens, IP addresses or probe hostnames.
+  console.info(`[telemetry:dns] ${stage}: ${detail}`);
+}
+
 function logDnsDiagnostic(stage: string, detail: string) {
   // The collection remains best-effort. Diagnostics intentionally omit test IDs,
   // customer tokens, IP addresses and probe hostnames.
@@ -73,6 +79,7 @@ async function collectDnsServer(): Promise<string | null> {
   let stage = "create-test";
 
   try {
+    logDnsProgress(stage, "iniciando teste DNS");
     const response = await fetch("/api/dns/new", {
       headers: { Accept: "application/json" },
       cache: "no-store",
@@ -93,8 +100,10 @@ async function collectDnsServer(): Promise<string | null> {
       return null;
     }
 
+    logDnsProgress(stage, `teste criado; ${hostnames.length} sondagens preparadas`);
     stage = "probe-hostnames";
     await Promise.all(hostnames.map(probeDnsHostname));
+    logDnsProgress(stage, "sondagens concluídas; consultando resolvedores");
 
     stage = "poll-results";
     let lastHttpStatus: number | null = null;
@@ -125,7 +134,9 @@ async function collectDnsServer(): Promise<string | null> {
         .filter((value): value is string => Boolean(value));
 
       if (values.length) {
-        return [...new Set(values)].slice(0, 3).join(", ").slice(0, 255);
+        const uniqueValues = [...new Set(values)].slice(0, 3);
+        logDnsProgress(stage, `${uniqueValues.length} resolvedor(es) identificado(s)`);
+        return uniqueValues.join(", ").slice(0, 255);
       }
     }
 
