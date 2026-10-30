@@ -183,7 +183,13 @@ export default async function DashboardPage() {
                     <InfoItem label="Bateria" value={formatNumber(metric?.battery_level ?? null, "%")} />
                     <InfoItem label="Provedor (ISP)" value={metric?.isp ?? "Não identificado"} />
                     <InfoItem label="IP público" value={metric?.client_ip ?? "Não informado"} />
-                    <InfoItem label="DNS" value={metric?.dns_server ?? "Não identificado"} />
+                    <div className={styles.infoItem}>
+                      <span>Resolvedor DNS observado</span>
+                      <strong title={metric?.dns_server ?? "Não identificado"}>{metric?.dns_server ?? "Não identificado"}</strong>
+                      <small className={styles.infoHelp}>
+                        Identificado pelas consultas DNS do teste. Pode ser diferente do DNS configurado no dispositivo ou roteador.
+                      </small>
+                    </div>
                     <InfoItem label="Data da coleta" value={formatDate(metric?.collected_at ?? null)} />
                   </div>
 
