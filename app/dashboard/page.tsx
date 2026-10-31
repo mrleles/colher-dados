@@ -26,12 +26,6 @@ type MetricRow = {
   dns_server: string | null;
   client_ip: string | null;
   isp: string | null;
-  ping_median: number | null;
-  download_speed: number | null;
-  ookla_server_id: number | null;
-  ookla_server_name: string | null;
-  ookla_server_city: string | null;
-  ookla_server_host: string | null;
   collected_at: string;
 };
 
@@ -89,7 +83,7 @@ export default async function DashboardPage() {
     ? await supabaseAdmin
         .from("telemetry_metrics")
         .select(
-          "session_id, device_brand, device_model_name, ram_gb, battery_level, dns_server, client_ip, isp, ping_median, download_speed, ookla_server_id, ookla_server_name, ookla_server_city, ookla_server_host, collected_at",
+          "session_id, device_brand, device_model_name, ram_gb, battery_level, dns_server, client_ip, isp, collected_at",
         )
         .in("session_id", sessionIds)
     : { data: [], error: null };
@@ -146,10 +140,6 @@ export default async function DashboardPage() {
             {sessionRows.map((session) => {
               const metric = metricBySession.get(session.id);
               const status = statusFor(session, metric);
-              const serverName = metric
-                ? `${metric.ookla_server_name ?? "Não identificado"} — ${metric.ookla_server_city ?? "cidade não informada"}${metric.ookla_server_id ? ` (ID ${metric.ookla_server_id})` : ""}`
-                : "Aguardando teste de velocidade";
-
               return (
                 <AccordionCard
                   key={session.id}
@@ -158,24 +148,6 @@ export default async function DashboardPage() {
                   statusLabel={status.label}
                   statusClassName={status.className}
                 >
-                  <div className={styles.speedPanel}>
-                    <div className={styles.speedItem}>
-                      <span>Download</span>
-                      <strong>{formatNumber(metric?.download_speed ?? null, " Mbps")}</strong>
-                    </div>
-                    <div className={styles.speedDivider} />
-                    <div className={styles.speedItem}>
-                      <span>Ping</span>
-                      <strong>{formatNumber(metric?.ping_median ?? null, " ms")}</strong>
-                    </div>
-                  </div>
-
-                  <div className={styles.serverPanel}>
-                    <span>Servidor de teste</span>
-                    <strong>{serverName}</strong>
-                    {metric?.ookla_server_host ? <small>{metric.ookla_server_host}</small> : null}
-                  </div>
-
                   <div className={styles.infoGrid}>
                     <InfoItem label="Marca" value={metric?.device_brand ?? "Não informado"} />
                     <InfoItem label="Modelo comercial" value={metric?.device_model_name ?? "Não identificado"} />

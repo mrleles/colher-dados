@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { collectBatteryLevel, collectDeviceInfo } from "@/lib/telemetry/device";
-import { findNearestOoklaServer, measureOoklaDownload } from "@/lib/telemetry/ookla-browser";
 
 type Status = "coletando" | "enviando" | "sucesso" | "erro";
 
@@ -32,13 +31,6 @@ type DnsLeakResult = {
     address?: string;
   }>;
 };
-
-function median(values: number[]) {
-  const sorted = [...values].sort((a, b) => a - b);
-  if (!sorted.length) return null;
-  const middle = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
-}
 
 function probeDnsHostname(hostname: string) {
   return new Promise<void>((resolve) => {
@@ -182,15 +174,6 @@ async function collectMetrics() {
   const batteryLevel = await collectBatteryLevel();
   const dnsServer = await collectDnsServer();
 
-  const nearest = await findNearestOoklaServer();
-  const downloadResult = await measureOoklaDownload(nearest.selected);
-  const pingMedian = downloadResult.latencyMs;
-  const downloadSpeed = downloadResult.downloadMbps;
-  const ooklaServerId = nearest.selected.id;
-  const ooklaServerName = nearest.selected.name;
-  const ooklaServerCity = nearest.selected.city;
-  const ooklaServerHost = nearest.selected.host;
-
   return {
     userAgent,
     os: device.os,
@@ -206,12 +189,6 @@ async function collectMetrics() {
     netEffectiveType: connection?.effectiveType ?? null,
     netRtt: connection?.rtt ?? null,
     netSaveData: connection?.saveData ?? null,
-    pingMedian,
-    downloadSpeed,
-    ooklaServerId,
-    ooklaServerName,
-    ooklaServerCity,
-    ooklaServerHost,
   };
 }
 
@@ -250,12 +227,59 @@ export default function CollectionPage({ params }: { params: Promise<{ token: st
   }, [params]);
 
   return (
-    <main style={{ color: "#fff" }}>
+    <main
+      style={{
+        boxSizing: "border-box",
+        width: "100%",
+        maxWidth: 1040,
+        margin: "0 auto",
+        padding: "24px 16px 40px",
+        color: "#fff",
+      }}
+    >
       <h1>Verificação de conexão</h1>
-      {status === "coletando" && <p>Coletando dados do dispositivo e da conexão…</p>}
-      {status === "enviando" && <p>Enviando os dados ao atendente…</p>}
-      {status === "sucesso" && <p>Dados enviados ao atendente.</p>}
-      {status === "erro" && <p>{error}</p>}
+      {status === "coletando" && <p style={{ color: "#f59e0b" }}>Coletando dados do dispositivo e da conexão…</p>}
+      {status === "enviando" && <p style={{ color: "#f59e0b" }}>Enviando os dados técnicos ao atendente…</p>}
+      {status === "sucesso" && <p style={{ color: "#22c55e" }}>Dados técnicos enviados ao atendente.</p>}
+      {status === "erro" && <p role="alert">{error}</p>}
+
+      <section aria-labelledby="speedtest-title" style={{ marginTop: 28 }}>
+        <h2 id="speedtest-title">Teste de velocidade da SuperNet</h2>
+        <p>
+          Execute o teste abaixo. Ao terminar, informe ao atendente apenas o valor
+          da velocidade de download apresentado.
+        </p>
+        <div
+          style={{
+            width: "100%",
+            overflow: "hidden",
+            borderRadius: 12,
+            background: "#fff",
+          }}
+        >
+          <iframe
+            title="Teste de velocidade SuperNet"
+            src="https://supernetsm.speedtestcustom.com"
+            width="100%"
+            height="650"
+            frameBorder="0"
+            loading="eager"
+            style={{ display: "block", width: "100%", border: 0 }}
+          />
+        </div>
+        <p style={{ fontSize: 14, color: "#cbd5e1", marginTop: 12 }}>
+          Se o teste não carregar,{" "}
+          <a
+            href="https://supernetsm.speedtestcustom.com"
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: "#93c5fd" }}
+          >
+            abra o Speedtest da SuperNet em outra aba
+          </a>
+          .
+        </p>
+      </section>
     </main>
   );
 }
