@@ -238,9 +238,9 @@ export default function CollectionPage({ params }: { params: Promise<{ token: st
       }}
     >
       <h1>Verificação de conexão</h1>
-      {status === "coletando" && <p>Coletando dados do dispositivo e da conexão…</p>}
-      {status === "enviando" && <p>Enviando os dados técnicos ao atendente…</p>}
-      {status === "sucesso" && <p>Dados técnicos enviados ao atendente.</p>}
+      {status === "coletando" && <p style={{ color: "#f59e0b" }}>Coletando dados do dispositivo e da conexão…</p>}
+      {status === "enviando" && <p style={{ color: "#f59e0b" }}>Enviando os dados técnicos ao atendente…</p>}
+      {status === "sucesso" && <p style={{ color: "#22c55e" }}>Dados técnicos enviados ao atendente.</p>}
       {status === "erro" && <p role="alert">{error}</p>}
 
       <section aria-labelledby="speedtest-title" style={{ marginTop: 28 }}>
