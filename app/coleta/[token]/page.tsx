@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { collectBatteryLevel, collectDeviceInfo } from "@/lib/telemetry/device";
-import { findNearestOoklaServer, measureOoklaDownload } from "@/lib/telemetry/ookla-browser";
 
 type Status = "coletando" | "enviando" | "sucesso" | "erro";
 
@@ -32,13 +31,6 @@ type DnsLeakResult = {
     address?: string;
   }>;
 };
-
-function median(values: number[]) {
-  const sorted = [...values].sort((a, b) => a - b);
-  if (!sorted.length) return null;
-  const middle = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
-}
 
 function probeDnsHostname(hostname: string) {
   return new Promise<void>((resolve) => {
@@ -182,15 +174,6 @@ async function collectMetrics() {
   const batteryLevel = await collectBatteryLevel();
   const dnsServer = await collectDnsServer();
 
-  const nearest = await findNearestOoklaServer();
-  const downloadResult = await measureOoklaDownload(nearest.selected);
-  const pingMedian = downloadResult.latencyMs;
-  const downloadSpeed = downloadResult.downloadMbps;
-  const ooklaServerId = nearest.selected.id;
-  const ooklaServerName = nearest.selected.name;
-  const ooklaServerCity = nearest.selected.city;
-  const ooklaServerHost = nearest.selected.host;
-
   return {
     userAgent,
     os: device.os,
@@ -206,12 +189,6 @@ async function collectMetrics() {
     netEffectiveType: connection?.effectiveType ?? null,
     netRtt: connection?.rtt ?? null,
     netSaveData: connection?.saveData ?? null,
-    pingMedian,
-    downloadSpeed,
-    ooklaServerId,
-    ooklaServerName,
-    ooklaServerCity,
-    ooklaServerHost,
   };
 }
 
