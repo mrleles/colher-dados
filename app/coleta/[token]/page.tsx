@@ -246,8 +246,8 @@ export default function CollectionPage({ params }: { params: Promise<{ token: st
       <section aria-labelledby="speedtest-title" style={{ marginTop: 28 }}>
         <h2 id="speedtest-title">Teste de velocidade da SuperNet</h2>
         <p>
-          Execute o teste abaixo. Ao terminar, informe ao atendente os resultados
-          apresentados: velocidade de download, velocidade de upload, ping e jitter.
+          Execute o teste abaixo. Ao terminar, informe ao atendente apenas o valor
+          da velocidade de download apresentado.
         </p>
         <div
           style={{
