@@ -250,12 +250,59 @@ export default function CollectionPage({ params }: { params: Promise<{ token: st
   }, [params]);
 
   return (
-    <main style={{ color: "#fff" }}>
+    <main
+      style={{
+        boxSizing: "border-box",
+        width: "100%",
+        maxWidth: 1040,
+        margin: "0 auto",
+        padding: "24px 16px 40px",
+        color: "#fff",
+      }}
+    >
       <h1>Verificação de conexão</h1>
       {status === "coletando" && <p>Coletando dados do dispositivo e da conexão…</p>}
-      {status === "enviando" && <p>Enviando os dados ao atendente…</p>}
-      {status === "sucesso" && <p>Dados enviados ao atendente.</p>}
-      {status === "erro" && <p>{error}</p>}
+      {status === "enviando" && <p>Enviando os dados técnicos ao atendente…</p>}
+      {status === "sucesso" && <p>Dados técnicos enviados ao atendente.</p>}
+      {status === "erro" && <p role="alert">{error}</p>}
+
+      <section aria-labelledby="speedtest-title" style={{ marginTop: 28 }}>
+        <h2 id="speedtest-title">Teste de velocidade da SuperNet</h2>
+        <p>
+          Execute o teste abaixo. Ao terminar, informe ao atendente os resultados
+          apresentados: velocidade de download, velocidade de upload, ping e jitter.
+        </p>
+        <div
+          style={{
+            width: "100%",
+            overflow: "hidden",
+            borderRadius: 12,
+            background: "#fff",
+          }}
+        >
+          <iframe
+            title="Teste de velocidade SuperNet"
+            src="https://supernetsm.speedtestcustom.com"
+            width="100%"
+            height="650"
+            frameBorder="0"
+            loading="eager"
+            style={{ display: "block", width: "100%", border: 0 }}
+          />
+        </div>
+        <p style={{ fontSize: 14, color: "#cbd5e1", marginTop: 12 }}>
+          Se o teste não carregar,{" "}
+          <a
+            href="https://supernetsm.speedtestcustom.com"
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: "#93c5fd" }}
+          >
+            abra o Speedtest da SuperNet em outra aba
+          </a>
+          .
+        </p>
+      </section>
     </main>
   );
 }
