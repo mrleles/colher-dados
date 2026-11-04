@@ -29,6 +29,26 @@ type MetricRow = {
   collected_at: string;
 };
 
+type AndroidMetricRow = {
+  session_id: string;
+  android_version: string;
+  sdk_int: number;
+  manufacturer: string;
+  model: string;
+  connection_type: string;
+  internet_available: boolean;
+  internet_validated: boolean;
+  captive_portal: boolean;
+  vpn_active: boolean | null;
+  active_interface: string | null;
+  dns_servers: string[];
+  private_dns_active: boolean | null;
+  private_dns_server_name: string | null;
+  gateway: string | null;
+  app_version: string;
+  collected_at: string;
+};
+
 function formatDate(value: string | null) {
   if (!value) return "Não informado";
   return new Intl.DateTimeFormat("pt-BR", {
@@ -43,8 +63,8 @@ function formatNumber(value: number | null, suffix = "") {
   return `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(value)}${suffix}`;
 }
 
-function statusFor(session: SessionRow, metric?: MetricRow) {
-  if (metric) return { label: "Coletado", className: styles.statusSuccess };
+function statusFor(session: SessionRow, hasMetrics: boolean) {
+  if (hasMetrics) return { label: "Coletado", className: styles.statusSuccess };
   if (new Date(session.expires_at) <= new Date()) {
     return { label: "Expirado", className: styles.statusExpired };
   }
@@ -79,24 +99,33 @@ export default async function DashboardPage() {
   const sessionRows = (sessions ?? []) as SessionRow[];
   const sessionIds = sessionRows.map((session) => session.id);
 
-  const { data: metrics, error: metricsError } = sessionIds.length
-    ? await supabaseAdmin
-        .from("telemetry_metrics")
-        .select(
+  const [{ data: metrics, error: metricsError }, { data: androidMetrics, error: androidMetricsError }] = await Promise.all([
+    sessionIds.length
+      ? supabaseAdmin.from("telemetry_metrics").select(
           "session_id, device_brand, device_model_name, ram_gb, battery_level, dns_server, client_ip, isp, collected_at",
-        )
-        .in("session_id", sessionIds)
-    : { data: [], error: null };
+        ).in("session_id", sessionIds)
+      : Promise.resolve({ data: [], error: null }),
+    sessionIds.length
+      ? supabaseAdmin.from("telemetry_android_metrics").select(
+          "session_id, android_version, sdk_int, manufacturer, model, connection_type, internet_available, internet_validated, captive_portal, vpn_active, active_interface, dns_servers, private_dns_active, private_dns_server_name, gateway, app_version, collected_at",
+        ).in("session_id", sessionIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
 
   if (metricsError) throw new Error("Não foi possível carregar as métricas.");
+  const androidTableNotInstalled = androidMetricsError?.code === "42P01" || androidMetricsError?.code === "PGRST205";
+  if (androidMetricsError && !androidTableNotInstalled) throw new Error("Não foi possível carregar os diagnósticos Android.");
 
   const metricBySession = new Map(
     ((metrics ?? []) as MetricRow[]).map((metric) => [metric.session_id, metric]),
   );
+  const androidMetricBySession = new Map(
+    ((androidTableNotInstalled ? [] : androidMetrics ?? []) as AndroidMetricRow[]).map((metric) => [metric.session_id, metric]),
+  );
 
-  const collectedCount = sessionRows.filter((session) => metricBySession.has(session.id)).length;
+  const collectedCount = sessionRows.filter((session) => metricBySession.has(session.id) || androidMetricBySession.has(session.id)).length;
   const waitingCount = sessionRows.filter(
-    (session) => !metricBySession.has(session.id) && new Date(session.expires_at) > new Date(),
+    (session) => !metricBySession.has(session.id) && !androidMetricBySession.has(session.id) && new Date(session.expires_at) > new Date(),
   ).length;
 
   return (
@@ -139,7 +168,8 @@ export default async function DashboardPage() {
           <AccordionCards initialOpenId={sessionRows[0].id}>
             {sessionRows.map((session) => {
               const metric = metricBySession.get(session.id);
-              const status = statusFor(session, metric);
+              const androidMetric = androidMetricBySession.get(session.id);
+              const status = statusFor(session, Boolean(metric || androidMetric));
               return (
                 <AccordionCard
                   key={session.id}
@@ -165,7 +195,36 @@ export default async function DashboardPage() {
                     <InfoItem label="Data da coleta" value={formatDate(metric?.collected_at ?? null)} />
                   </div>
 
-                  {!metric && new Date(session.expires_at) > new Date() ? (
+                  <section style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid #25313d" }}>
+                    <h4 style={{ margin: "0 0 12px", color: "#e4eaf1" }}>Diagnóstico nativo Android</h4>
+                    {androidMetric ? (
+                      <>
+                        <div className={styles.infoGrid}>
+                          <InfoItem label="Origem" value="Aplicativo Colher Dados" />
+                          <InfoItem label="Versão do aplicativo" value={androidMetric.app_version} />
+                          <InfoItem label="Versão Android" value={androidMetric.android_version + " (API " + androidMetric.sdk_int + ")"} />
+                          <InfoItem label="Dispositivo" value={androidMetric.manufacturer + " " + androidMetric.model} />
+                          <InfoItem label="Conexão" value={androidMetric.connection_type} />
+                          <InfoItem label="Internet" value={androidMetric.internet_available ? (androidMetric.internet_validated ? "Validada" : "Disponível, não validada") : "Sem capacidade de Internet"} />
+                          <InfoItem label="Portal cativo" value={androidMetric.captive_portal ? "Detectado" : "Não detectado"} />
+                          <InfoItem label="Interface" value={androidMetric.active_interface ?? "Não informada"} />
+                          <InfoItem label="VPN" value={androidMetric.vpn_active === null ? "Não determinado" : androidMetric.vpn_active ? "Detectada" : "Não detectada"} />
+                          <InfoItem label="DNS disponibilizado ao link" value={(androidMetric.dns_servers ?? []).join(", ") || "Não informado"} />
+                          <InfoItem label="Private DNS" value={androidMetric.private_dns_active === null ? "Não determinado" : androidMetric.private_dns_active ? "Ativo" : "Inativo"} />
+                          <InfoItem label="Hostname Private DNS" value={androidMetric.private_dns_server_name ?? "Não informado"} />
+                          <InfoItem label="Gateway padrão" value={androidMetric.gateway ?? "Não informado"} />
+                          <InfoItem label="Coleta Android" value={formatDate(androidMetric.collected_at)} />
+                        </div>
+                        <small className={styles.infoHelp}>
+                          DNS informado pelo Android para a rede ativa. Não comprova a origem DHCP nem identifica o DNS upstream do roteador. Com VPN ativa, os servidores podem pertencer à VPN.
+                        </small>
+                      </>
+                    ) : (
+                      <p style={{ margin: 0, color: "#8ea2b8", fontSize: 13 }}>Aguardando diagnóstico pelo aplicativo Android.</p>
+                    )}
+                  </section>
+
+                  {!metric && !androidMetric && new Date(session.expires_at) > new Date() ? (
                     <div className={styles.cardFooter}>
                       <span>Link válido até {formatDate(session.expires_at)}</span>
                       <CopySessionLink sessionId={session.id} />

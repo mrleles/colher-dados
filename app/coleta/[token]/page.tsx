@@ -238,6 +238,7 @@ export default function CollectionPage({ params }: { params: Promise<{ token: st
       }}
     >
       <h1>Verificação de conexão</h1>
+      <p style={{ color: "#cbd5e1", marginTop: 8 }}>Para identificar os DNS disponibilizados pelo Android, <a href="/api/telemetry/download" style={{ color: "#93c5fd" }}>baixe o aplicativo Colher Dados</a>. Abra-o pelo link de diagnóstico enviado pelo atendente e autorize o envio após revisar os dados.</p>
       {status === "coletando" && <p style={{ color: "#f59e0b" }}>Coletando dados do dispositivo e da conexão…</p>}
       {status === "enviando" && <p style={{ color: "#f59e0b" }}>Enviando os dados técnicos ao atendente…</p>}
       {status === "sucesso" && <p style={{ color: "#22c55e" }}>Dados técnicos enviados ao atendente.</p>}
