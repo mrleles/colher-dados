@@ -1,6 +1,10 @@
 name: Android debug APK
 
 on:
+  pull_request:
+    paths:
+      - "android/**"
+      - ".github/workflows/android-debug-apk.yml"
   workflow_dispatch:
     inputs:
       api_base_url:
@@ -25,7 +29,7 @@ jobs:
           gradle-version: "8.9"
       - name: Build debug APK
         working-directory: android
-        run: gradle assembleDebug -PapiBaseUrl="${{ inputs.api_base_url }}"
+        run: gradle assembleDebug -PapiBaseUrl="${{ inputs.api_base_url || 'https://colher-dados.vercel.app' }}"
       - uses: actions/upload-artifact@v4
         with:
           name: colher-dados-debug-apk
