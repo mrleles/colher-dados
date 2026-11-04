@@ -36,6 +36,9 @@ type AndroidMetricRow = {
   manufacturer: string;
   model: string;
   connection_type: string;
+  internet_available: boolean;
+  internet_validated: boolean;
+  captive_portal: boolean;
   vpn_active: boolean;
   active_interface: string | null;
   dns_servers: string[];
@@ -104,7 +107,7 @@ export default async function DashboardPage() {
       : Promise.resolve({ data: [], error: null }),
     sessionIds.length
       ? supabaseAdmin.from("telemetry_android_metrics").select(
-          "session_id, android_version, sdk_int, manufacturer, model, connection_type, vpn_active, active_interface, dns_servers, private_dns_active, private_dns_server_name, gateway, app_version, collected_at",
+          "session_id, android_version, sdk_int, manufacturer, model, connection_type, internet_available, internet_validated, captive_portal, vpn_active, active_interface, private_dns_active, private_dns_server_name, gateway, app_version, collected_at",
         ).in("session_id", sessionIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
@@ -202,6 +205,8 @@ export default async function DashboardPage() {
                           <InfoItem label="Versão Android" value={androidMetric.android_version + " (API " + androidMetric.sdk_int + ")"} />
                           <InfoItem label="Dispositivo" value={androidMetric.manufacturer + " " + androidMetric.model} />
                           <InfoItem label="Conexão" value={androidMetric.connection_type} />
+                          <InfoItem label="Internet" value={androidMetric.internet_available ? (androidMetric.internet_validated ? "Validada" : "Disponível, não validada") : "Sem capacidade de Internet"} />
+                          <InfoItem label="Portal cativo" value={androidMetric.captive_portal ? "Detectado" : "Não detectado"} />
                           <InfoItem label="Interface" value={androidMetric.active_interface ?? "Não informada"} />
                           <InfoItem label="VPN" value={androidMetric.vpn_active ? "Detectada" : "Não detectada"} />
                           <InfoItem label="DNS disponibilizado ao link" value={(androidMetric.dns_servers ?? []).join(", ") || "Não informado"} />

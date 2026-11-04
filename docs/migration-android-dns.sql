@@ -15,6 +15,9 @@ create table if not exists public.telemetry_android_metrics (
   manufacturer varchar(100) not null,
   model varchar(120) not null,
   connection_type varchar(16) not null,
+  internet_available boolean not null,
+  internet_validated boolean not null,
+  captive_portal boolean not null,
   vpn_active boolean not null,
   active_interface varchar(100),
   dns_servers jsonb not null default '[]'::jsonb,
@@ -45,12 +48,13 @@ begin
 
   insert into public.telemetry_android_metrics (
     session_id, android_version, sdk_int, manufacturer, model, connection_type,
-    vpn_active, active_interface, dns_servers, private_dns_active,
+    internet_available, internet_validated, captive_portal, vpn_active, active_interface, dns_servers, private_dns_active,
     private_dns_server_name, gateway, routes, local_addresses, client_collected_at, app_version
   ) values (
     v_session_id, p_metrics->>'androidVersion', (p_metrics->>'sdkInt')::integer,
     p_metrics->>'manufacturer', p_metrics->>'model', p_metrics->>'connectionType',
-    (p_metrics->>'vpnActive')::boolean, p_metrics->>'activeInterface',
+    (p_metrics->>'internetAvailable')::boolean, (p_metrics->>'internetValidated')::boolean,
+    (p_metrics->>'captivePortal')::boolean, (p_metrics->>'vpnActive')::boolean, p_metrics->>'activeInterface',
     coalesce(p_metrics->'dnsServers', '[]'::jsonb), (p_metrics->>'privateDnsActive')::boolean,
     p_metrics->>'privateDnsServerName', p_metrics->>'gateway',
     coalesce(p_metrics->'routes', '[]'::jsonb), coalesce(p_metrics->'localAddresses', '[]'::jsonb),
