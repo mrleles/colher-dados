@@ -110,13 +110,14 @@ export default async function DashboardPage() {
   ]);
 
   if (metricsError) throw new Error("Não foi possível carregar as métricas.");
-  if (androidMetricsError) throw new Error("Não foi possível carregar os diagnósticos Android. Verifique se a migração docs/migration-android-dns.sql foi aplicada.");
+  const androidTableNotInstalled = androidMetricsError?.code === "42P01" || androidMetricsError?.code === "PGRST205";
+  if (androidMetricsError && !androidTableNotInstalled) throw new Error("Não foi possível carregar os diagnósticos Android.");
 
   const metricBySession = new Map(
     ((metrics ?? []) as MetricRow[]).map((metric) => [metric.session_id, metric]),
   );
   const androidMetricBySession = new Map(
-    ((androidMetrics ?? []) as AndroidMetricRow[]).map((metric) => [metric.session_id, metric]),
+    ((androidTableNotInstalled ? [] : androidMetrics ?? []) as AndroidMetricRow[]).map((metric) => [metric.session_id, metric]),
   );
 
   const collectedCount = sessionRows.filter((session) => metricBySession.has(session.id) || androidMetricBySession.has(session.id)).length;
