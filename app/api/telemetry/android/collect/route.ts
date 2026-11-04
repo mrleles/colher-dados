@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 const metricsSchema = z.object({
+  appVersion: z.string().max(32),
   androidVersion: z.string().max(40),
   sdkInt: z.number().int().min(28).max(100),
   manufacturer: z.string().max(100),

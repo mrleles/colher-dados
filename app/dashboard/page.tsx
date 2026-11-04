@@ -42,6 +42,7 @@ type AndroidMetricRow = {
   private_dns_active: boolean;
   private_dns_server_name: string | null;
   gateway: string | null;
+  app_version: string;
   collected_at: string;
 };
 
@@ -59,8 +60,8 @@ function formatNumber(value: number | null, suffix = "") {
   return `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(value)}${suffix}`;
 }
 
-function statusFor(session: SessionRow, metric?: MetricRow) {
-  if (metric) return { label: "Coletado", className: styles.statusSuccess };
+function statusFor(session: SessionRow, hasMetrics: boolean) {
+  if (hasMetrics) return { label: "Coletado", className: styles.statusSuccess };
   if (new Date(session.expires_at) <= new Date()) {
     return { label: "Expirado", className: styles.statusExpired };
   }
@@ -103,7 +104,7 @@ export default async function DashboardPage() {
       : Promise.resolve({ data: [], error: null }),
     sessionIds.length
       ? supabaseAdmin.from("telemetry_android_metrics").select(
-          "session_id, android_version, sdk_int, manufacturer, model, connection_type, vpn_active, active_interface, dns_servers, private_dns_active, private_dns_server_name, gateway, collected_at",
+          "session_id, android_version, sdk_int, manufacturer, model, connection_type, vpn_active, active_interface, dns_servers, private_dns_active, private_dns_server_name, gateway, app_version, collected_at",
         ).in("session_id", sessionIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
@@ -118,9 +119,9 @@ export default async function DashboardPage() {
     ((androidMetrics ?? []) as AndroidMetricRow[]).map((metric) => [metric.session_id, metric]),
   );
 
-  const collectedCount = sessionRows.filter((session) => metricBySession.has(session.id)).length;
+  const collectedCount = sessionRows.filter((session) => metricBySession.has(session.id) || androidMetricBySession.has(session.id)).length;
   const waitingCount = sessionRows.filter(
-    (session) => !metricBySession.has(session.id) && new Date(session.expires_at) > new Date(),
+    (session) => !metricBySession.has(session.id) && !androidMetricBySession.has(session.id) && new Date(session.expires_at) > new Date(),
   ).length;
 
   return (
@@ -164,7 +165,7 @@ export default async function DashboardPage() {
             {sessionRows.map((session) => {
               const metric = metricBySession.get(session.id);
               const androidMetric = androidMetricBySession.get(session.id);
-              const status = statusFor(session, metric ?? (androidMetric as unknown as MetricRow | undefined));
+              const status = statusFor(session, Boolean(metric || androidMetric));
               return (
                 <AccordionCard
                   key={session.id}
@@ -196,6 +197,7 @@ export default async function DashboardPage() {
                       <>
                         <div className={styles.infoGrid}>
                           <InfoItem label="Origem" value="Aplicativo Colher Dados" />
+                          <InfoItem label="Versão do aplicativo" value={androidMetric.app_version} />
                           <InfoItem label="Versão Android" value={androidMetric.android_version + " (API " + androidMetric.sdk_int + ")"} />
                           <InfoItem label="Dispositivo" value={androidMetric.manufacturer + " " + androidMetric.model} />
                           <InfoItem label="Conexão" value={androidMetric.connection_type} />

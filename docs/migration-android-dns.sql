@@ -46,7 +46,7 @@ begin
   insert into public.telemetry_android_metrics (
     session_id, android_version, sdk_int, manufacturer, model, connection_type,
     vpn_active, active_interface, dns_servers, private_dns_active,
-    private_dns_server_name, gateway, routes, local_addresses, client_collected_at
+    private_dns_server_name, gateway, routes, local_addresses, client_collected_at, app_version
   ) values (
     v_session_id, p_metrics->>'androidVersion', (p_metrics->>'sdkInt')::integer,
     p_metrics->>'manufacturer', p_metrics->>'model', p_metrics->>'connectionType',
@@ -54,7 +54,8 @@ begin
     coalesce(p_metrics->'dnsServers', '[]'::jsonb), (p_metrics->>'privateDnsActive')::boolean,
     p_metrics->>'privateDnsServerName', p_metrics->>'gateway',
     coalesce(p_metrics->'routes', '[]'::jsonb), coalesce(p_metrics->'localAddresses', '[]'::jsonb),
-    (p_metrics->>'clientCollectedAt')::timestamptz
+    (p_metrics->>'clientCollectedAt')::timestamptz,
+    coalesce(p_metrics->>'appVersion', '1.0.0')
   );
   update public.telemetry_android_tokens set used_at = now() where session_id = v_session_id;
 end;

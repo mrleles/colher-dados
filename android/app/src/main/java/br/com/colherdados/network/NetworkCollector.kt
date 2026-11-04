@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
+import br.com.colherdados.BuildConfig
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.Instant
@@ -41,6 +42,7 @@ object NetworkCollector {
         val privateDnsActive = if (Build.VERSION.SDK_INT >= 28) properties?.isPrivateDnsActive ?: false else false
         val privateDnsName = if (Build.VERSION.SDK_INT >= 28) properties?.privateDnsServerName else null
         return JSONObject()
+            .put("appVersion", BuildConfig.VERSION_NAME)
             .put("androidVersion", Build.VERSION.RELEASE ?: "unknown")
             .put("sdkInt", Build.VERSION.SDK_INT)
             .put("manufacturer", Build.MANUFACTURER.take(100))
