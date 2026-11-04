@@ -8,6 +8,7 @@ export default function CreateSessionForm() {
   const [protocolId, setProtocolId] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [appLink, setAppLink] = useState<string | null>(null);
+  const [androidCopied, setAndroidCopied] = useState(false);
   const [androidError, setAndroidError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -20,6 +21,7 @@ export default function CreateSessionForm() {
     setAndroidError(null);
     setUrl(null);
     setAppLink(null);
+    setAndroidCopied(false);
     setProtocolId(null);
     setExpiresAt(null);
     setCopied(false);
@@ -59,6 +61,12 @@ export default function CreateSessionForm() {
     setCopied(true);
   }
 
+  async function copyAndroidLink() {
+    if (!appLink) return;
+    await navigator.clipboard.writeText(appLink);
+    setAndroidCopied(true);
+  }
+
   return (
     <section className={styles.generator}>
       <div className={styles.generatorHeader}>
@@ -89,7 +97,10 @@ export default function CreateSessionForm() {
               O cliente pode instalar o APK, abrir o aplicativo pelo link abaixo, revisar os dados de rede e autorizar o envio.
             </p>
             {appLink ? (
-              <a href={appLink} style={{ color: "#9bd8c5", fontWeight: 700 }}>Abrir no aplicativo Colher Dados</a>
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
+                <a href={appLink} style={{ color: "#9bd8c5", fontWeight: 700 }}>Abrir no aplicativo Colher Dados</a>
+                <button type="button" onClick={() => void copyAndroidLink()}>{androidCopied ? "✓ Link do app copiado" : "Copiar link para o cliente"}</button>
+              </div>
             ) : (
               <p style={{ color: "#ef9299", fontSize: 13 }}>{androidError ?? "Autorização Android não disponível."}</p>
             )}
