@@ -15,10 +15,10 @@ object NetworkCollector {
         val network = manager.activeNetwork
         val capabilities = network?.let { manager.getNetworkCapabilities(it) }
         val properties = network?.let { manager.getLinkProperties(it) }
-        val vpn = capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true
+        val vpn = capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
         val type = when {
             network == null || capabilities == null -> "none"
-            vpn -> "vpn"
+            vpn == true -> "vpn"
             capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "wifi"
             capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "cellular"
             capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> "ethernet"
@@ -39,7 +39,7 @@ object NetworkCollector {
             val address = link.address
             if (!address.isLoopbackAddress && !address.isLinkLocalAddress) addresses.put(address.hostAddress ?: address.toString())
         }
-        val privateDnsActive = if (Build.VERSION.SDK_INT >= 28) properties?.isPrivateDnsActive ?: false else false
+        val privateDnsActive: Any = if (properties == null) JSONObject.NULL else if (Build.VERSION.SDK_INT >= 28) properties.isPrivateDnsActive else JSONObject.NULL
         val privateDnsName = if (Build.VERSION.SDK_INT >= 28) properties?.privateDnsServerName else null
         return JSONObject()
             .put("appVersion", BuildConfig.VERSION_NAME)
@@ -51,7 +51,7 @@ object NetworkCollector {
             .put("internetAvailable", capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true)
             .put("internetValidated", capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true)
             .put("captivePortal", capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_CAPTIVE_PORTAL) == true)
-            .put("vpnActive", vpn)
+            .put("vpnActive", vpn ?: JSONObject.NULL)
             .put("activeInterface", properties?.interfaceName ?: JSONObject.NULL)
             .put("dnsServers", dns)
             .put("privateDnsActive", privateDnsActive)

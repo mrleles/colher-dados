@@ -39,10 +39,10 @@ type AndroidMetricRow = {
   internet_available: boolean;
   internet_validated: boolean;
   captive_portal: boolean;
-  vpn_active: boolean;
+  vpn_active: boolean | null;
   active_interface: string | null;
   dns_servers: string[];
-  private_dns_active: boolean;
+  private_dns_active: boolean | null;
   private_dns_server_name: string | null;
   gateway: string | null;
   app_version: string;
@@ -107,7 +107,7 @@ export default async function DashboardPage() {
       : Promise.resolve({ data: [], error: null }),
     sessionIds.length
       ? supabaseAdmin.from("telemetry_android_metrics").select(
-          "session_id, android_version, sdk_int, manufacturer, model, connection_type, internet_available, internet_validated, captive_portal, vpn_active, active_interface, private_dns_active, private_dns_server_name, gateway, app_version, collected_at",
+          "session_id, android_version, sdk_int, manufacturer, model, connection_type, internet_available, internet_validated, captive_portal, vpn_active, active_interface, dns_servers, private_dns_active, private_dns_server_name, gateway, app_version, collected_at",
         ).in("session_id", sessionIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
@@ -208,9 +208,9 @@ export default async function DashboardPage() {
                           <InfoItem label="Internet" value={androidMetric.internet_available ? (androidMetric.internet_validated ? "Validada" : "Disponível, não validada") : "Sem capacidade de Internet"} />
                           <InfoItem label="Portal cativo" value={androidMetric.captive_portal ? "Detectado" : "Não detectado"} />
                           <InfoItem label="Interface" value={androidMetric.active_interface ?? "Não informada"} />
-                          <InfoItem label="VPN" value={androidMetric.vpn_active ? "Detectada" : "Não detectada"} />
+                          <InfoItem label="VPN" value={androidMetric.vpn_active === null ? "Não determinado" : androidMetric.vpn_active ? "Detectada" : "Não detectada"} />
                           <InfoItem label="DNS disponibilizado ao link" value={(androidMetric.dns_servers ?? []).join(", ") || "Não informado"} />
-                          <InfoItem label="Private DNS" value={androidMetric.private_dns_active ? "Ativo" : "Inativo"} />
+                          <InfoItem label="Private DNS" value={androidMetric.private_dns_active === null ? "Não determinado" : androidMetric.private_dns_active ? "Ativo" : "Inativo"} />
                           <InfoItem label="Hostname Private DNS" value={androidMetric.private_dns_server_name ?? "Não informado"} />
                           <InfoItem label="Gateway padrão" value={androidMetric.gateway ?? "Não informado"} />
                           <InfoItem label="Coleta Android" value={formatDate(androidMetric.collected_at)} />
