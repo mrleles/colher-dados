@@ -2,8 +2,8 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
-val apiBaseUrl = providers.gradleProperty("apiBaseUrl").orElse(providers.environmentVariable("COLHER_DADOS_API_BASE_URL")).orElse("https://example.invalid").get()
-require(apiBaseUrl.startsWith("https://")) { "apiBaseUrl must use HTTPS" }
+val apiBaseUrl = providers.gradleProperty("apiBaseUrl").orElse(providers.environmentVariable("COLHER_DADOS_API_BASE_URL")).orElse("").get()
+require(apiBaseUrl.startsWith("https://") && apiBaseUrl.length > 8) { "Configure apiBaseUrl com a URL HTTPS pública do Colher Dados" }
 android {
     namespace = "br.com.colherdados"
     compileSdk = 35

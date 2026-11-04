@@ -48,7 +48,7 @@ class MainActivity : Activity() {
         collectButton = Button(this).apply { text = "Coletar informações"; setOnClickListener { collect() } }
         sendButton = Button(this).apply { text = "Autorizar e enviar ao atendente"; isEnabled = false; setOnClickListener { send() } }
         root.addView(status)
-        root.addView(details, LinearLayout.LayoutParams(-1, 0, 1f))
+        root.addView(details)
         root.addView(collectButton)
         root.addView(sendButton)
         setContentView(ScrollView(this).apply { addView(root) })
