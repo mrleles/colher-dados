@@ -1,6 +1,12 @@
 name: Android debug APK
 
 on:
+  push:
+    branches:
+      - feat/android-dns-diagnostic
+    paths:
+      - "android/**"
+      - ".github/workflows/android-debug-apk.yml"
   pull_request:
     paths:
       - "android/**"
